@@ -1,33 +1,20 @@
+; UVA/VU - Multi-Agent Systems
+; Koen Keune & Marysia Winkels
 
-
-;;; DEFINING VARIABLES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
+; --- Global variables ---
 globals [
-  width         ;; width of the pitch
-  height        ;; height of the pitch
-  red-goal      ;; patches that belongs to the red goal
-  blue-goal     ;; patches that belong to the blue goal
-  the-ball      ;; the ball
-  score-red     ;; amount of goals that the red team has scored since the setup
-  score-blue    ;; amount of goals that the blue team has scored since the setup
-  red-team      ;; players of the red team
-  blue-team     ;; players of the blue team
-  seed          ;; current seed number
-  previous-seed ;; previous seed number
+  width         ; width of the court
+  height        ; height of the court
 ]
 
+; --- Agents ---
+breed [players player]   ; players
+breed [balls ball]       ; the ball
 
-breed [players player]   ;; soccer players
-breed [keepers keeper]   ;; keeper
-breed [balls ball]       ;; the ball
-breed [referees referee] ;; referee
-
-
+; --- Local variables ---
 patches-own[
  available?
 ]
-
 
 players-own[
   ball?          ;; does the player have the ball?
@@ -46,17 +33,6 @@ players-own[
   defending?     ;; is the player currently in a defensive position?
 ]
 
-
-referees-own[
-  team    ;; used when neither of the teams have the ball
-]
-
-
-keepers-own[
-  team
-]
-
-
 balls-own[
   owner              ;; the owner of the ball
   target             ;; the target where the ball can be played to (either a player or a patch of the goal)
@@ -67,18 +43,14 @@ balls-own[
 ]
 
 
-;;; SETUP THE MODEL ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-
 ; --- Setup ---
 to setup
   clear-all
   ;set time 0
   ;set color_list [red brown yellow green turquoise sky violet]
-  setup-patches
-  ;setup-vacuums
-  ;setup-ticks
+  setup-court
+  setup-game
+  setup-ticks
   ;set total_dirty length [list pxcor pycor] of patches with [pcolor != white]
 end
 
@@ -88,34 +60,20 @@ to go
   ;update-desires
   ;update-beliefs
   ;update-intentions
-  ;execute-actions
+  execute-actions
   ;send-messages
 
-
-;  ifelse total_dirty > 0 [
-;    set time time + 1
-;    tick
-;  ][ stop ]
+  ;set time time + 1
+  tick
 end
 
-
-
-
-to setup-patches ;; setup the field en set values of the variables
+to setup-court ;; set the distances of the lines
   set width 50 / 2
   set height 94 / 2
-  set score-red 0
-  set score-blue 0
-
-  set-default-shape keepers "keeper"
-  set-default-shape players "player"
-  set-default-shape balls "football"
-  set-default-shape referees "keeper"
-  prepare-patch
+  setup-lines
 end
 
-
-to prepare-patch ;; set the colors of the field
+to setup-lines ; set the lines
   ask patches [
     set pcolor 37
   ]
@@ -125,7 +83,7 @@ to prepare-patch ;; set the colors of the field
   ]
   set lines middle-line
   ask lines [
-    set pcolor white
+    set pcolor black + 2
   ]
   set lines basket1
   ask lines [
@@ -134,6 +92,10 @@ to prepare-patch ;; set the colors of the field
   set lines basket2
   ask lines [
     set pcolor red
+  ]
+  set lines basket-base
+  ask lines [
+    set pcolor gray
   ]
   set lines three-point-line1
   ask lines [
@@ -156,7 +118,7 @@ to-report define-lines
 end
 
 to-report middle-line
-  report patches with [pxcor = 0 and pycor <= width and pycor >= -1 * width]
+  report patches with [pxcor = 0 and pycor <= width - 1 and pycor >= -1 * width + 1]
 end
 
 to-report basket1
@@ -169,19 +131,64 @@ to-report basket2
      or (pycor = 0 and (pxcor = -1 * height + 3 or pxcor = -1 * height + 5))]
 end
 
+to-report basket-base
+  report patches with [pycor = 0 and (pxcor = height - 2 or pxcor = height - 1 or
+    pxcor = -1 * height + 2 or pxcor = -1 * height + 1)]
+end
+
 to-report three-point-line1
-  report patches with [pxcor >= height - 21 and pxcor <= height - 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
-    (pxcor = height - 22 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+  report patches with [pxcor >= height - 23 and pxcor <= height - 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = height - 24 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
 end
 
 to-report three-point-line2
-  report patches with [pxcor <= -1 * height + 21 and pxcor >= -1 * height + 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
-    (pxcor = -1 * height + 22 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+  report patches with [pxcor <= -1 * height + 23 and pxcor >= -1 * height + 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = -1 * height + 24 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
 end
 
 to-report middle-circle
     report patches with [pxcor >= -4 and pxcor <= 4 and (pycor = -4 or pycor = 4) or
       (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
+end
+
+; --- Setup ticks ---
+to setup-ticks
+  reset-ticks
+end
+
+to setup-game
+  set-default-shape players "player"
+  set-default-shape balls "ball basketball"
+
+  create-players 5 [
+    set team "celtics"
+    set color green
+    set size 4
+    setxy random max-pxcor random max-pycor
+  ]
+
+  create-players 5 [
+    set team "lakers"
+    set color yellow
+    set size 4
+    setxy random max-pxcor random max-pycor
+  ]
+
+  create-balls 1 [
+    set size 2
+    set xy random max-pxcor random max-pycor
+  ]
+end
+
+to setup-player
+end
+
+; --- Execute actions ---
+to execute-actions
+  ask players [
+    left random 360
+    fd 1
+  ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -244,28 +251,6 @@ NIL
 NIL
 NIL
 1
-
-MONITOR
-14
-412
-80
-457
-NIL
-score-red
-17
-1
-11
-
-MONITOR
-112
-412
-183
-457
-NIL
-score-blue
-17
-1
-11
 
 BUTTON
 134
@@ -338,6 +323,14 @@ arrow
 true
 0
 Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+ball basketball
+false
+0
+Circle -7500403 true true 26 26 247
+Polygon -16777216 false false 30 150 30 165 45 195 75 225 120 240 180 240 225 225 255 195 270 165 270 150 270 135 255 105 225 75 180 60 120 60 75 75 45 105 30 135
+Line -16777216 false 30 150 270 150
+Circle -16777216 false false 26 26 247
 
 box
 false
