@@ -102,9 +102,8 @@ end
 
 
 to setup-patches ;; setup the field en set values of the variables
-  clear-all
-  set width 25
-  set height 18
+  set width 50 / 2
+  set height 94 / 2
   set score-red 0
   set score-blue 0
 
@@ -119,50 +118,80 @@ end
 to prepare-patch ;; set the colors of the field
   ask patches [
     set pcolor 37
-    set available? 0
   ]
-  let land define-lines
-  ask land [
+  let lines define-lines
+  ask lines [
     set pcolor white
-    set available? 2
   ]
-  set blue-goal create-blue-goal
-  ask blue-goal [
-    set pcolor blue - 2
-    set available? 1
+  set lines middle-line
+  ask lines [
+    set pcolor white
   ]
-  set red-goal create-red-goal
-  ask red-goal [
-    set pcolor red - 2
-    set available? 1
+  set lines basket1
+  ask lines [
+    set pcolor red
+  ]
+  set lines basket2
+  ask lines [
+    set pcolor red
+  ]
+  set lines three-point-line1
+  ask lines [
+    set pcolor black + 2
+  ]
+  set lines three-point-line2
+  ask lines [
+    set pcolor black + 2
+  ]
+  set lines middle-circle
+  ask lines [
+    set pcolor white
   ]
 end
 
 
 to-report define-lines
-  report patches with [(pxcor = width OR pxcor = -1 * width OR pycor = height OR pycor = -1 * height) AND pxcor <= width AND pxcor >= -1 * width AND pycor <= height AND pycor >= -1 * height]
+  report patches with [pycor = width or pycor = -1 * width or pxcor = height or pxcor = -1 * height
+    and pycor <= width and pycor >= -1 * width and pxcor <= height and pxcor >= -1 * height]
 end
 
-
-to-report create-red-goal
-  report patches with [((pxcor <= -1 * width AND pxcor >= -1 * width - 2)) and (pycor >= -3 and pycor <= 3)]
+to-report middle-line
+  report patches with [pxcor = 0 and pycor <= width and pycor >= -1 * width]
 end
 
-
-to-report create-blue-goal
-  report patches with [((pxcor >= width AND pxcor <= width + 2)) and (pycor >= -3 and pycor <= 3)]
+to-report basket1
+  report patches with [(pycor = -1 or pycor = 1) and (pxcor = height - 3 or pxcor = height - 4 or pxcor = height - 5)
+     or (pycor = 0 and (pxcor = height - 3 or pxcor = height - 5))]
 end
 
+to-report basket2
+  report patches with [(pycor = -1 or pycor = 1) and (pxcor = -1 * height + 3 or pxcor = -1 * height + 4 or pxcor = -1 * height + 5)
+     or (pycor = 0 and (pxcor = -1 * height + 3 or pxcor = -1 * height + 5))]
+end
 
+to-report three-point-line1
+  report patches with [pxcor >= height - 21 and pxcor <= height - 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = height - 22 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+end
+
+to-report three-point-line2
+  report patches with [pxcor <= -1 * height + 21 and pxcor >= -1 * height + 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = -1 * height + 22 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+end
+
+to-report middle-circle
+    report patches with [pxcor >= -4 and pxcor <= 4 and (pycor = -4 or pycor = 4) or
+      (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
+end
 @#$#@#$#@
 GRAPHICS-WINDOW
-218
-10
-1355
-798
-30
-20
-18.48
+235
+18
+1135
+543
+49
+27
+9.0
 1
 10
 1
@@ -172,10 +201,10 @@ GRAPHICS-WINDOW
 0
 0
 1
--30
-30
--20
-20
+-49
+49
+-27
+27
 0
 0
 1
@@ -238,39 +267,6 @@ score-blue
 1
 11
 
-INPUTBOX
-35
-569
-190
-629
-seed-number
--853597324
-1
-0
-Number
-
-SWITCH
-64
-527
-184
-560
-fixed-seed?
-fixed-seed?
-1
-1
--1000
-
-MONITOR
-39
-638
-174
-683
-previous seed number
-previous-seed
-17
-1
-11
-
 BUTTON
 134
 374
@@ -287,17 +283,6 @@ NIL
 NIL
 NIL
 1
-
-INPUTBOX
-28
-684
-183
-744
-sensitivity
-20
-1
-0
-Number
 
 @#$#@#$#@
 ## WHAT IS IT?
