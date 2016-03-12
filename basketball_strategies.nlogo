@@ -5,6 +5,8 @@
 globals [
   width         ; width of the court
   height        ; height of the court
+  points-lakers
+  points-celtics
 ]
 
 ; --- Agents ---
@@ -47,11 +49,12 @@ balls-own[
 to setup
   clear-all
   ;set time 0
-  ;set color_list [red brown yellow green turquoise sky violet]
   setup-court
   setup-game
   setup-ticks
-  ;set total_dirty length [list pxcor pycor] of patches with [pcolor != white]
+
+  tick
+  random-bounce 15
 end
 
 
@@ -160,27 +163,61 @@ to setup-game
   set-default-shape players "player"
   set-default-shape balls "ball basketball"
 
+  create-balls 1 [
+    set size 2
+    set color orange
+    setxy 0 0
+  ]
+
   create-players 5 [
     set team "celtics"
     set color green
-    set size 4
-    setxy random max-pxcor random max-pycor
   ]
 
   create-players 5 [
     set team "lakers"
     set color yellow
-    set size 4
-    setxy random max-pxcor random max-pycor
   ]
 
-  create-balls 1 [
-    set size 2
-    set xy random max-pxcor random max-pycor
+  pos-player 1 2 0
+  pos-player 2 5 -5
+  pos-player 3 5 5
+  pos-player 4 7 0
+  pos-player 5 12 0
+  pos-player 6 -2 0
+  pos-player 7 -5 -5
+  pos-player 8 -5 5
+  pos-player 9 -7 0
+  pos-player 10 -12 0
+
+  ask players [
+     facexy 0 0
+     set size 5
   ]
+
+  set points-lakers 0
+  set points-celtics 0
 end
 
-to setup-player
+to pos-player [number x y]
+  ask player number [ setxy x y ]
+end
+
+to random-bounce [max-dist]
+  ask balls [
+    let distX 0 ; have to initialize
+    let distY 0
+
+    ifelse random 2 = 1 [
+      set distX random max-dist
+    ][ set distX -1 * random max-dist ]
+
+    ifelse random 2 = 1 [
+      set distY random max-dist
+    ][ set distY -1 * random max-dist ]
+
+    setxy xcor + distX ycor + distY
+  ]
 end
 
 ; --- Execute actions ---
@@ -192,10 +229,10 @@ to execute-actions
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-235
-18
-1135
-543
+409
+13
+1309
+538
 49
 27
 9.0
@@ -219,10 +256,10 @@ ticks
 30.0
 
 BUTTON
-65
-325
-128
-358
+146
+34
+209
+67
 NIL
 setup
 NIL
@@ -236,10 +273,10 @@ NIL
 1
 
 BUTTON
-17
-370
-80
-403
+98
+79
+161
+112
 NIL
 go
 T
@@ -253,10 +290,10 @@ NIL
 1
 
 BUTTON
-134
-374
-197
-407
+215
+83
+278
+116
 NIL
 go\n
 NIL
@@ -268,6 +305,28 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+53
+145
+136
+190
+NIL
+points-lakers
+17
+1
+11
+
+MONITOR
+200
+148
+283
+193
+NIL
+points-lakers
+17
+1
+11
 
 @#$#@#$#@
 ## WHAT IS IT?
