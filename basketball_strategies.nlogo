@@ -10,6 +10,9 @@ globals [
   points-celtics
   ball-position
   distance-for-possesion
+  basket1-pos
+  basket2-pos
+  speed
 ]
 
 ; --- Agents ---
@@ -26,6 +29,7 @@ players-own[
   basket-to-score
   player-has-ball?
   team-has-ball?
+  is-open?
 ]
 
 balls-own[
@@ -39,7 +43,6 @@ referees-own [
 ; --- Setup ---
 to setup
   clear-all
-  ;set time 0
   setup-court
   setup-game
   setup-parameters
@@ -61,10 +64,12 @@ to go
 end
 
 ; --- Setup the lines and the baskets of the court ---
-to setup-court ;; set the distances of the lines
+to setup-court
   set width 50 / 2
   set height 94 / 2
   setup-lines
+  set basket1-pos patches with [pxcor = height - 4 and pycor = 0]
+  set basket2-pos patches with [pxcor = -1 * height + 4 and pycor = 0]
 end
 
 to setup-lines ; set the lines
@@ -135,11 +140,13 @@ to setup-game
   create-players 5 [
     set team "celtics"
     set color green
+    set basket-to-score basket2-pos
   ]
 
   create-players 5 [
     set team "lakers"
     set color yellow
+    set basket-to-score basket1-pos
   ]
 
   pos-player 0 2 0
@@ -198,7 +205,9 @@ end
 
 ; --- Setup global parameters ---
 to setup-parameters
-  set distance-for-possesion 5
+  set distance-for-possesion 1
+  set time 0
+  set speed 1
 end
 
 ; --- Setup ticks ---
@@ -238,22 +247,40 @@ end
 ; pass
 ; walk
 to update-intentions
+  ask players [
+    ifelse player-has-ball? [
+      set intention "walk with ball"
+    ][
+      set intention "no intention"
+    ]
 
+  ]
 end
 
 ; --- Execute actions ---
 to execute-actions
   ask players [
-    left random 360
-    fd 1
+    if intention = "walk with ball" [
+      face one-of basket-to-score
+      fd 1
+      ask ball 11 [
+        set heading ([heading] of owner) ; make it go the same direction
+        setxy ([xcor] of myself) ([ycor] of myself)
+        fd 1
+      ]
+    ]
+    if intention = "not intention"[
+      left random 360
+      fd 1
+    ]
   ]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 409
 13
-1309
-538
+1310
+539
 49
 27
 9.0
@@ -399,7 +426,7 @@ MONITOR
 147
 266
 Beliefs of player 1
-[desire] of player 1
+[player-has-ball?] of player 1
 17
 1
 11
@@ -410,7 +437,7 @@ MONITOR
 319
 263
 Beliefs of player 6
-[desire] of player 6
+[player-has-ball?] of player 6
 17
 1
 11
