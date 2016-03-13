@@ -7,6 +7,8 @@ globals [
   height        ; height of the court
   points-lakers
   points-celtics
+  ball-position
+  distance-for-possesion
 ]
 
 ; --- Agents ---
@@ -18,30 +20,18 @@ patches-own[
  available?
 ]
 
+; beliefs are: ball, team-has-ball, team, basket-to-score, if the player self has the ball
 players-own[
-  ball?          ;; does the player have the ball?
-  teamball?      ;; does the team of the player have the ball?
-  nearbygoal?    ;; is the goal nearby?
-  oppinfront?    ;; is there an opponent in front?
-  oppnearby?     ;; is there an opponent nearby?
-  nearbyteam?    ;; is there a free teammate nearby?
-  team           ;; the team the player belongs to
-  nearbyball?    ;; is the ball nearby?
-  inbetween?     ;; is there an opponent between the player and the ball? (is the player standing free?)
-  target         ;; the target of the player
-  mygoal         ;; the goal where the player has to score
-  teamplayer?    ;; is the player a teamplayer?
-  defensive?     ;; is the player a defensive player?
-  defending?     ;; is the player currently in a defensive position?
+  desire
+  intention
+  team
+  basket-to-score
+  player-has-ball?
+  team-has-ball?
 ]
 
 balls-own[
-  owner              ;; the owner of the ball
-  target             ;; the target where the ball can be played to (either a player or a patch of the goal)
-  closest-blue       ;; the closest player to the ball of the blue team
-  closest-red        ;; the closest player to the ball of the red team
-  closestfront-blue  ;; the closest player of the blue team in defending position (between the ball and the goal of the defenders)
-  closestfront-red   ;; the closest player of the blue team in defending position (between the ball and the goal of the defenders)
+  owner
 ]
 
 
@@ -51,18 +41,16 @@ to setup
   ;set time 0
   setup-court
   setup-game
+  setup-parameters
   setup-ticks
-
-  tick
-  random-bounce 15
 end
 
 
 ; --- Main processing cycle ---
 to go
-  ;update-desires
-  ;update-beliefs
-  ;update-intentions
+  update-desires
+  update-beliefs
+  update-intentions
   execute-actions
   ;send-messages
 
@@ -70,6 +58,7 @@ to go
   tick
 end
 
+; --- Setup the lines and the baskets of the court ---
 to setup-court ;; set the distances of the lines
   set width 50 / 2
   set height 94 / 2
@@ -80,42 +69,24 @@ to setup-lines ; set the lines
   ask patches [
     set pcolor 37
   ]
-  let lines define-lines
+  color-lines outer-lines white
+  color-lines middle-line black + 2
+  color-lines basket1 red
+  color-lines basket2 red
+  color-lines basket-base gray
+  color-lines three-point-line1 black + 2
+  color-lines three-point-line2 black + 2
+  color-lines middle-circle white
+end
+
+to color-lines [line col]
+  let lines line
   ask lines [
-    set pcolor white
-  ]
-  set lines middle-line
-  ask lines [
-    set pcolor black + 2
-  ]
-  set lines basket1
-  ask lines [
-    set pcolor red
-  ]
-  set lines basket2
-  ask lines [
-    set pcolor red
-  ]
-  set lines basket-base
-  ask lines [
-    set pcolor gray
-  ]
-  set lines three-point-line1
-  ask lines [
-    set pcolor black + 2
-  ]
-  set lines three-point-line2
-  ask lines [
-    set pcolor black + 2
-  ]
-  set lines middle-circle
-  ask lines [
-    set pcolor white
+    set pcolor col
   ]
 end
 
-
-to-report define-lines
+to-report outer-lines
   report patches with [pycor = width or pycor = -1 * width or pxcor = height or pxcor = -1 * height
     and pycor <= width and pycor >= -1 * width and pxcor <= height and pxcor >= -1 * height]
 end
@@ -154,11 +125,7 @@ to-report middle-circle
       (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
 end
 
-; --- Setup ticks ---
-to setup-ticks
-  reset-ticks
-end
-
+; --- Setup the players and the ball ---
 to setup-game
   set-default-shape players "player"
   set-default-shape balls "ball basketball"
@@ -167,6 +134,8 @@ to setup-game
     set size 2
     set color orange
     setxy 0 0
+    set owner "no one"
+    set ball-position self
   ]
 
   create-players 5 [
@@ -193,6 +162,7 @@ to setup-game
   ask players [
      facexy 0 0
      set size 5
+     set team-has-ball? false
   ]
 
   set points-lakers 0
@@ -218,6 +188,44 @@ to random-bounce [max-dist]
 
     setxy xcor + distX ycor + distY
   ]
+end
+
+; --- Setup global parameters ---
+to setup-parameters
+  set distance-for-possesion 1
+end
+
+; --- Setup ticks ---
+to setup-ticks
+  reset-ticks
+end
+
+; --- Update desires ---
+to update-desires
+  ask players [
+    ifelse team-has-ball? [ set desire "score" ]
+    [ set desire "defend" ]
+    ; might have to add when no one has the ball for loose balls
+  ]
+end
+
+; --- Update beliefs ---
+; team has ball
+; player has ball
+to update-beliefs
+  ask players [
+    ;if
+
+
+  ]
+end
+
+; --- Update intentions ---
+; shoot
+; pass
+; walk
+to update-intentions
+
 end
 
 ; --- Execute actions ---
