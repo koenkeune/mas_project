@@ -1,0 +1,153 @@
+; --- Setup the lines and the baskets of the court ---
+to setup-court
+  set width 50 / 2
+  set height 94 / 2
+  setup-lines
+  set basket1-pos patches with [pxcor = height - 4 and pycor = 0]
+  set basket2-pos patches with [pxcor = -1 * height + 4 and pycor = 0]
+end
+
+to setup-lines ; set the lines
+  ask patches [
+    set pcolor 37
+  ]
+  color-lines outer-lines white
+  color-lines middle-line black + 2
+  color-lines basket1 red
+  color-lines basket2 red
+  color-lines basket-base gray
+  color-lines three-point-line1 black + 2
+  color-lines three-point-line2 black + 2
+  color-lines middle-circle white
+end
+
+to color-lines [line col]
+  let lines line
+  ask lines [
+    set pcolor col
+  ]
+end
+
+to-report outer-lines
+  report patches with [pycor = width or pycor = -1 * width or pxcor = height or pxcor = -1 * height
+    and pycor <= width and pycor >= -1 * width and pxcor <= height and pxcor >= -1 * height]
+end
+
+to-report middle-line
+  report patches with [pxcor = 0 and pycor <= width - 1 and pycor >= -1 * width + 1]
+end
+
+to-report basket1
+  report patches with [(pycor = -1 or pycor = 1) and (pxcor = height - 3 or pxcor = height - 4 or pxcor = height - 5)
+     or (pycor = 0 and (pxcor = height - 3 or pxcor = height - 5))]
+end
+
+to-report basket2
+  report patches with [(pycor = -1 or pycor = 1) and (pxcor = -1 * height + 3 or pxcor = -1 * height + 4 or pxcor = -1 * height + 5)
+     or (pycor = 0 and (pxcor = -1 * height + 3 or pxcor = -1 * height + 5))]
+end
+
+to-report basket-base
+  report patches with [pycor = 0 and (pxcor = height - 2 or pxcor = height - 1 or
+    pxcor = -1 * height + 2 or pxcor = -1 * height + 1)]
+end
+
+to-report three-point-line1
+  report patches with [pxcor >= height - 23 and pxcor <= height - 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = height - 24 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+end
+
+to-report three-point-line2
+  report patches with [pxcor <= -1 * height + 23 and pxcor >= -1 * height + 1 and (pycor = width - 4 or pycor = -1 * width + 4) or
+    (pxcor = -1 * height + 24 and pycor <=  width - 4 and pycor >=  -1 * width + 4)]
+end
+
+to-report middle-circle
+    report patches with [pxcor >= -4 and pxcor <= 4 and (pycor = -4 or pycor = 4) or
+      (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
+end
+
+; --- Setup the players and the ball ---
+to setup-game
+  set-default-shape players "player"
+  set-default-shape balls "ball basketball"
+
+  create-players 5 [
+    set team "celtics"
+    set color green
+    set basket-to-score basket2-pos
+  ]
+
+  create-players 5 [
+    set team "lakers"
+    set color yellow
+    set basket-to-score basket1-pos
+  ]
+
+  pos-player 0 2 0
+  pos-player 1 5 -5
+  pos-player 2 5 5
+  pos-player 3 7 0
+  pos-player 4 12 0
+  pos-player 5 -2 0
+  pos-player 6 -5 -5
+  pos-player 7 -5 5
+  pos-player 8 -7 0
+  pos-player 9 -12 0
+
+  ask players [
+     facexy 0 0
+     set size 5
+     set team-has-ball? false
+     set shooting-range 15 ; all have the same shooting range for now
+     set in-shooting-range? false
+  ]
+
+  create-referees 1 [
+    hide-turtle
+  ]
+
+  create-balls 1 [
+    set size 2
+    set color orange
+    setxy 0 0
+    set owner referee 10
+    set ball-position self
+  ]
+
+  set points-lakers 0
+  set points-celtics 0
+end
+
+to pos-player [number x y]
+  ask player number [ setxy x y ]
+end
+
+to random-bounce [max-dist]
+  ask balls [
+    let distX 0 ; have to initialize
+    let distY 0
+
+    ifelse random 2 = 1 [
+      set distX random max-dist
+    ][ set distX -1 * random max-dist ]
+
+    ifelse random 2 = 1 [
+      set distY random max-dist
+    ][ set distY -1 * random max-dist ]
+
+    setxy xcor + distX ycor + distY
+  ]
+end
+
+; --- Setup global parameters ---
+to setup-parameters
+  set distance-for-possesion 1
+  set time 0
+  ;set speed 1
+end
+
+; --- Setup ticks ---
+to setup-ticks
+  reset-ticks
+end

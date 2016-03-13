@@ -1,6 +1,8 @@
 ; UVA/VU - Multi-Agent Systems
 ; Koen Keune & Marysia Winkels
 
+;__includes["bla.nls"]
+
 ; --- Global variables ---
 globals [
   width         ; width of the court
@@ -12,7 +14,8 @@ globals [
   distance-for-possesion
   basket1-pos
   basket2-pos
-  speed
+  ;speed
+  ;distance-to-basket
 ]
 
 ; --- Agents ---
@@ -30,6 +33,8 @@ players-own[
   player-has-ball?
   team-has-ball?
   is-open?
+  shooting-range
+  in-shooting-range?
 ]
 
 balls-own[
@@ -164,6 +169,8 @@ to setup-game
      facexy 0 0
      set size 5
      set team-has-ball? false
+     set shooting-range 15 ; all have the same shooting range for now
+     set in-shooting-range? false
   ]
 
   create-referees 1 [
@@ -207,7 +214,7 @@ end
 to setup-parameters
   set distance-for-possesion 1
   set time 0
-  set speed 1
+  ;set speed 1
 end
 
 ; --- Setup ticks ---
@@ -232,6 +239,10 @@ to update-beliefs
     ifelse (distance ball-position) < distance-for-possesion [
       set player-has-ball? true
       ask ball 11 [set owner myself]
+      ;if any? patches in-radius shooting-range with basket-to-score [
+      ;  set in-shooting-range? true
+      ;]
+      ;any? patches in-radius shoot-distance-selfish with [pcolor = [color] of myself - 2] and not teamplayer?
     ][ set player-has-ball? false ]
   ]
 
@@ -242,6 +253,8 @@ to update-beliefs
   ]
 end
 
+
+
 ; --- Update intentions ---
 ; shoot
 ; pass
@@ -251,9 +264,11 @@ to update-intentions
     ifelse player-has-ball? [
       set intention "walk with ball"
     ][
+    ifelse in-shooting-range? [
+      set intention "shoot"
+    ][
       set intention "no intention"
-    ]
-
+    ]]
   ]
 end
 
@@ -269,7 +284,10 @@ to execute-actions
         fd 1
       ]
     ]
-    if intention = "not intention"[
+    if intention = "shoot" [
+
+    ]
+    if intention = "no intention"[
       left random 360
       fd 1
     ]
