@@ -5,6 +5,7 @@
 globals [
   width         ; width of the court
   height        ; height of the court
+  time
   points-lakers
   points-celtics
   ball-position
@@ -12,14 +13,11 @@ globals [
 ]
 
 ; --- Agents ---
-breed [players player]   ; players
-breed [balls ball]       ; the ball
+breed [players player]
+breed [balls ball]
+breed [referees referee]
 
 ; --- Local variables ---
-patches-own[
- available?
-]
-
 ; beliefs are: ball, team-has-ball, team, basket-to-score, if the player self has the ball
 players-own[
   desire
@@ -34,6 +32,9 @@ balls-own[
   owner
 ]
 
+referees-own [
+  team
+]
 
 ; --- Setup ---
 to setup
@@ -45,16 +46,17 @@ to setup
   setup-ticks
 end
 
-
 ; --- Main processing cycle ---
 to go
+  if time = 0 [random-bounce 15]
+
   update-desires
   update-beliefs
   update-intentions
   execute-actions
   ;send-messages
 
-  ;set time time + 1
+  set time time + 1
   tick
 end
 
@@ -130,14 +132,6 @@ to setup-game
   set-default-shape players "player"
   set-default-shape balls "ball basketball"
 
-  create-balls 1 [
-    set size 2
-    set color orange
-    setxy 0 0
-    set owner "no one"
-    set ball-position self
-  ]
-
   create-players 5 [
     set team "celtics"
     set color green
@@ -148,21 +142,33 @@ to setup-game
     set color yellow
   ]
 
-  pos-player 1 2 0
-  pos-player 2 5 -5
-  pos-player 3 5 5
-  pos-player 4 7 0
-  pos-player 5 12 0
-  pos-player 6 -2 0
-  pos-player 7 -5 -5
-  pos-player 8 -5 5
-  pos-player 9 -7 0
-  pos-player 10 -12 0
+  pos-player 0 2 0
+  pos-player 1 5 -5
+  pos-player 2 5 5
+  pos-player 3 7 0
+  pos-player 4 12 0
+  pos-player 5 -2 0
+  pos-player 6 -5 -5
+  pos-player 7 -5 5
+  pos-player 8 -7 0
+  pos-player 9 -12 0
 
   ask players [
      facexy 0 0
      set size 5
      set team-has-ball? false
+  ]
+
+  create-referees 1 [
+    hide-turtle
+  ]
+
+  create-balls 1 [
+    set size 2
+    set color orange
+    setxy 0 0
+    set owner referee 10
+    set ball-position self
   ]
 
   set points-lakers 0
@@ -192,7 +198,7 @@ end
 
 ; --- Setup global parameters ---
 to setup-parameters
-  set distance-for-possesion 1
+  set distance-for-possesion 5
 end
 
 ; --- Setup ticks ---
@@ -214,9 +220,16 @@ end
 ; player has ball
 to update-beliefs
   ask players [
-    ;if
+    ifelse (distance ball-position) < distance-for-possesion [
+      set player-has-ball? true
+      ask ball 11 [set owner myself]
+    ][ set player-has-ball? false ]
+  ]
 
-
+  ask players [
+    ifelse ([team] of ([owner] of ball 11) = [team] of self) [
+      set team-has-ball? true
+    ][ set team-has-ball? false ]
   ]
 end
 
@@ -317,9 +330,9 @@ NIL
 MONITOR
 53
 145
-136
+139
 190
-NIL
+Points Lakers
 points-lakers
 17
 1
@@ -328,10 +341,76 @@ points-lakers
 MONITOR
 200
 148
-283
+286
 193
-NIL
-points-lakers
+Points Celtics
+points-celtics
+17
+1
+11
+
+MONITOR
+40
+292
+151
+337
+Desire of player 1
+[desire] of player 1
+17
+1
+11
+
+MONITOR
+211
+288
+322
+333
+Desire of player 6
+[desire] of player 6
+17
+1
+11
+
+MONITOR
+27
+360
+154
+405
+Intention of player 1
+[intention] of player 1
+17
+1
+11
+
+MONITOR
+203
+359
+330
+404
+Intention of player 6
+[intention] of player 6
+17
+1
+11
+
+MONITOR
+35
+221
+147
+266
+Beliefs of player 1
+[desire] of player 1
+17
+1
+11
+
+MONITOR
+207
+218
+319
+263
+Beliefs of player 6
+[desire] of player 6
 17
 1
 11
