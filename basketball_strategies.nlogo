@@ -39,6 +39,8 @@ players-own[
 
 balls-own[
   owner
+  closest-yellow
+  closest-green
 ]
 
 referees-own [
@@ -58,6 +60,7 @@ end
 to go
   if time = 0 [random-bounce 15]
   if time = 100 [ stop ]
+  update-ball
   update-desires
   update-beliefs
   update-intentions
@@ -68,13 +71,18 @@ to go
   tick
 
 end
+to-report referee-owns-ball
+  let owns False
+  ask referees [ if ([team] of ([owner] of ball 11) = [team] of self) [ set owns True ] ]
+  report owns
+end
 
 ; --- Update desires ---
 to update-desires
   ask players [
-    ifelse team-has-ball? [ set desire "score" ]
-    [ set desire "defend" ]
-    ; might have to add when no one has the ball for loose balls
+    ifelse referee-owns-ball
+    [ set desire "get-ball" ]
+    [ ifelse team-has-ball? [ set desire "score" ] [ set desire "defend" ] ]
   ]
 end
 
@@ -82,6 +90,7 @@ end
 ; team has ball
 ; player has ball
 to update-beliefs
+  ask ball 11 [ set owner referee 10 ]
   ask players [
     ifelse (distance ball-position) < distance-for-possesion [
       set player-has-ball? true
@@ -98,6 +107,14 @@ to update-beliefs
       set team-has-ball? true
     ][ set team-has-ball? false ]
   ]
+
+end
+
+to-report is-nearest [ obj agent agentset]
+  print agentset
+  let nearest agent
+  ask obj [ set nearest (min-one-of agentset [distance myself]) ]
+  ifelse nearest = agent [ report True ] [ report False ]
 end
 
 ; --- Update intentions ---
@@ -106,20 +123,50 @@ end
 ; walk
 to update-intentions
   ask players [
-    ifelse player-has-ball? [
-      set intention "walk with ball"
-    ][
-    ifelse in-shooting-range? [
-      set intention "shoot"
-    ][
-      set intention "no intention"
-    ]]
+    if desire = "get-ball"
+    [ ; if nearest: move-towards-ball, else: move-random
+      let agentset (players with [team = [team] of self])
+      ifelse is-nearest ball 11 self agentset
+      [ set intention "move-towards-ball" ] [ set intention "move-random" ]
+      ]
+    if desire = "defend"
+    [
+      ifelse closest-green = myself or closest-yellow = myself
+      [ set intention "move-towards-ball" ] [ set intention "defend-player" ]
+    ]
+
+    if desire = "score" [
+     ifelse player-has-ball?
+     [ ; shoot or move or pass
+       set intention "shoot"
+        ]
+    [ set intention "open-position" ]
+    ]
+
+
+
   ]
 end
 
+to update-ball
+  ask ball 11 [
+  set closest-yellow min-one-of players with [team = "yellow"] [distance myself]
+  set closest-green min-one-of players with [team = "green"][distance myself]
+  ]
+end
+
+
 ; --- Execute actions ---
 to execute-actions
+  ;print get-nearest ball 11
+
+
+
   ask players [
+    if intention = "defend" [
+    print min-one-of (players with [desire = "score"]) [distance myself]
+    ]
+
     if intention = "walk with ball" [
       face one-of basket-to-score
       fd 1
