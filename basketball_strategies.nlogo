@@ -57,7 +57,7 @@ end
 ; --- Main processing cycle ---
 to go
   if time = 0 [random-bounce 15]
-
+  if time = 100 [ stop ]
   update-desires
   update-beliefs
   update-intentions
@@ -66,6 +66,7 @@ to go
 
   set time time + 1
   tick
+
 end
 
 ; --- Update desires ---
