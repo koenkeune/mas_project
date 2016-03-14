@@ -30,6 +30,7 @@ players-own[
   intention
   team
   basket-to-score
+  basket-to-defend
   player-has-ball?
   team-has-ball?
   is-open?
@@ -141,7 +142,7 @@ to update-intentions
     if desire = "score" [
      ifelse player-has-ball?
      [ ; shoot or move or pass -> should improve.
-       set intention "shoot"
+       set intention "move-ball"
         ]
     [ set intention "open-position" ]
     ]
@@ -179,15 +180,23 @@ to execute-actions
       fd 1
     ]
     if intention = "move-random" [
-      if team-has-ball? [ face basket-to-score ] [ face basket-to-defend ]
-      fd 1
+      ifelse team-has-ball? [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
+      fd 10
     ]
     if intention = "defend-player" [
       ; get nearest defendable player
       face nearest-opponent self
       fd 1
     ]
-
+    if intention = "move-ball" [
+      face one-of basket-to-score
+      fd 1
+      ask ball 11 [
+        set heading ([heading] of owner) ; make it go the same direction
+        setxy ([xcor] of myself) ([ycor] of myself)
+        fd 1
+      ]
+    ]
 
 
 
