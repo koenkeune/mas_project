@@ -39,8 +39,6 @@ players-own[
 
 balls-own[
   owner
-  closest-yellow
-  closest-green
 ]
 
 referees-own [
@@ -60,7 +58,6 @@ end
 to go
   if time = 0 [random-bounce 15]
   if time = 100 [ stop ]
-  update-ball
   update-desires
   update-beliefs
   update-intentions
@@ -110,10 +107,18 @@ to update-beliefs
 
 end
 
-to-report is-nearest [ obj agent agentset]
-  print agentset
+to-report is-nearest [ obj agent]
+  let agentset 0
   let nearest agent
+
+  ; create the agentset
+  ask agent [ ifelse [team] of self = "lakers"
+    [ set agentset (players with [team = "lakers"]) ]
+    [ set agentset (players with [team = "celtics"]) ]
+  ]
+  ; find nearest agent from set
   ask obj [ set nearest (min-one-of agentset [distance myself]) ]
+  ; report back
   ifelse nearest = agent [ report True ] [ report False ]
 end
 
@@ -124,36 +129,28 @@ end
 to update-intentions
   ask players [
     if desire = "get-ball"
-    [ ; if nearest: move-towards-ball, else: move-random
-      let agentset (players with [team = [team] of self])
-      ifelse is-nearest ball 11 self agentset
+    [ ; if nearest to ball: move-towards-ball, else: move-random
+      ifelse is-nearest ball 11 self
       [ set intention "move-towards-ball" ] [ set intention "move-random" ]
       ]
     if desire = "defend"
-    [
-      ifelse closest-green = myself or closest-yellow = myself
+    [ ; if nearest to ball, defend ball, else: defend player
+      ifelse is-nearest ball 11 self
       [ set intention "move-towards-ball" ] [ set intention "defend-player" ]
     ]
-
     if desire = "score" [
      ifelse player-has-ball?
-     [ ; shoot or move or pass
+     [ ; shoot or move or pass -> should improve.
        set intention "shoot"
         ]
     [ set intention "open-position" ]
     ]
 
 
-
+    print intention
   ]
 end
 
-to update-ball
-  ask ball 11 [
-  set closest-yellow min-one-of players with [team = "yellow"] [distance myself]
-  set closest-green min-one-of players with [team = "green"][distance myself]
-  ]
-end
 
 
 ; --- Execute actions ---
@@ -163,9 +160,23 @@ to execute-actions
 
 
   ask players [
-    if intention = "defend" [
-    print min-one-of (players with [desire = "score"]) [distance myself]
+    if intention = "move-towards-ball" [
+      ; get position of ball, head to that location.
+      face ball 11
+      fd 1
     ]
+    if intention = "move-random" [
+      if team-has-ball? [ face basket-to-score ] [ face basket-to-defend ]
+      fd 1
+    ]
+    if intention = "defend-player" [
+      ; get nearest defendable player
+
+    ]
+
+
+
+
 
     if intention = "walk with ball" [
       face one-of basket-to-score
