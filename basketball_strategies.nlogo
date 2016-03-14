@@ -151,6 +151,19 @@ to update-intentions
   ]
 end
 
+to-report nearest-opponent [ player ]
+  let agentset 0
+  let nearest player
+  ask player [ ifelse [team] of self = "celtics"
+    [ set agentset (players with [team = "lakers"]) ]
+    [ set agentset (players with [team = "celtics"]) ]
+  ]
+
+  ask player [ set nearest (min-one-of agentset [distance myself]) ]
+
+  report nearest
+end
+
 
 
 ; --- Execute actions ---
@@ -171,9 +184,9 @@ to execute-actions
     ]
     if intention = "defend-player" [
       ; get nearest defendable player
-
+      face nearest-opponent self
+      fd 1
     ]
-
 
 
 

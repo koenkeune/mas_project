@@ -76,12 +76,14 @@ to setup-game
     set team "celtics"
     set color green
     set basket-to-score basket2-pos
+    set basket-to-defend basket1-pos
   ]
 
   create-players 5 [
     set team "lakers"
     set color yellow
     set basket-to-score basket1-pos
+    set basket-to-defend basket2-pos
   ]
 
   pos-player 0 2 0
