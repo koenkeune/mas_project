@@ -102,7 +102,6 @@ to setup-game
      set size 5
      set team-has-ball? false
      set shooting-range 15 ; all have the same shooting range for now
-     set in-shooting-range? false
   ]
 
   create-referees 1 [

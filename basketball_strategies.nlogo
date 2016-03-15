@@ -35,7 +35,6 @@ players-own[
   team-has-ball?
   is-open?
   shooting-range
-  in-shooting-range?
 ]
 
 balls-own[
@@ -142,7 +141,8 @@ to update-intentions
     if desire = "score" [
      ifelse player-has-ball?
      [ ; shoot or move or pass -> should improve.
-       set intention "move-ball"
+       ifelse in-shooting-range self [ set intention "shoot" ]
+       [ set intention "move-ball" ]
         ]
     [ set intention "open-position" ]
     ]
@@ -156,13 +156,21 @@ to-report nearest-opponent [ player ]
   let agentset 0
   let nearest player
   ask player [ ifelse [team] of self = "celtics"
-    [ set agentset (players with [team = "lakers"]) ]
-    [ set agentset (players with [team = "celtics"]) ]
+    [ set agentset (players with [team = "lakers"  and not player-has-ball? ] ) ]
+    [ set agentset (players with [team = "celtics"  and not player-has-ball?]) ]
   ]
-
   ask player [ set nearest (min-one-of agentset [distance myself]) ]
-
   report nearest
+end
+
+to-report in-shooting-range [agent]
+  let can-shoot false
+  ask agent [ if distance one-of basket-to-score < shooting-range [ set can-shoot true ] ]
+  report can-shoot
+end
+to-report clear-line [agent1 agent2]
+  ; to add
+  report true
 end
 
 
@@ -180,13 +188,15 @@ to execute-actions
       fd 1
     ]
     if intention = "move-random" [
-      ifelse team-has-ball? [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
-      fd 10
+      ifelse random-float 1 < .5 [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
+      fd 1
     ]
     if intention = "defend-player" [
       ; get nearest defendable player
-      face nearest-opponent self
+      let defended nearest-opponent self
+      face defended
       fd 1
+      ask defended [ set is-open? false ]
     ]
     if intention = "move-ball" [
       face one-of basket-to-score
@@ -197,25 +207,17 @@ to execute-actions
         fd 1
       ]
     ]
-
-
-
-    if intention = "walk with ball" [
-      face one-of basket-to-score
-      fd 1
-      ask ball 11 [
-        set heading ([heading] of owner) ; make it go the same direction
-        setxy ([xcor] of myself) ([ycor] of myself)
-        fd 1
-      ]
-    ]
     if intention = "shoot" [
-
+      ask ball 11 [
+        face one-of basket-to-score
+        ;setxy basket-to-score
+        fd distance basket-to-score
     ]
     if intention = "no intention"[
       left random 360
       fd 1
     ]
+  ]
   ]
 end
 @#$#@#$#@
