@@ -1,7 +1,7 @@
 ; UVA/VU - Multi-Agent Systems
 ; Koen Keune & Marysia Winkels
 
-__includes["setup_old.nls"]
+__includes["setup_koen.nls"]
 
 ; --- Global variables ---
 globals [
@@ -24,7 +24,7 @@ breed [balls ball]
 breed [referees referee]
 
 ; --- Local variables ---
-; beliefs are: ball, team-has-ball, team, basket-to-score, if the player self has the ball
+; beliefs are: ball, team-has-ball, team, basket-to-score, if the player has the ball, ...
 players-own[
   desire
   intention
@@ -41,6 +41,8 @@ players-own[
 
 balls-own[
   owner
+  shot-made
+  shot-missed
 ]
 
 referees-own [
@@ -92,6 +94,8 @@ to update-beliefs
   ask ball 11 [
     set closest-Laker min-one-of (players with [team = "lakers"]) [distance myself]
     set closest-Celtic min-one-of (players with [team = "celtics"]) [distance myself]
+
+
   ]
 
   ask players [
@@ -107,13 +111,10 @@ to update-beliefs
       set loose-ball? false
       set player-has-ball? true
       ask ball 11 [set owner myself]
-      ;if distance self <
 
       let distance-to-basket 0
       ask basket-to-score [
-        print distance myself
         set distance-to-basket distance myself
-        ;print shooting-range
       ]
 
       ifelse distance-to-basket < shooting-range [
@@ -174,8 +175,30 @@ to execute-actions
       ]
     ]
     if intention = "shoot" [
+      let xBasket 0
+      let yBasket 0
+      let distance-to-basket 0
+      let range shooting-range
+
+      ask basket-to-score [
+        set xBasket pxcor
+        set yBasket pycor
+        set distance-to-basket distance myself
+      ]
+
       ask ball 11 [
-        ;setxy
+        setxy xBasket yBasket
+
+        print range
+        print distance-to-basket
+        print probability-score range distance-to-basket
+
+        ifelse random probability-score range distance-to-basket > (probability-score range distance-to-basket / 2) [
+          set shot-made true
+        ][
+          set shot-missed true
+        ]
+
       ]
     ]
     if intention = "no intention"[
@@ -188,7 +211,6 @@ to execute-actions
     ]
   ]
 end
-
 
 
 

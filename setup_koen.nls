@@ -116,6 +116,8 @@ to setup-game
     setxy 0 0
     set owner referee 10
     set ball-position self
+    set shot-made false
+    set shot-missed false
   ]
 
   set points-lakers 0
@@ -141,6 +143,14 @@ to random-bounce [max-dist]
 
     setxy xcor + distX ycor + distY
   ]
+end
+
+; probability that the ball goes in is a function of the player's range and the distance to the basket
+; relative distance makes the function better scale on the range of a player
+; maximal range without defense gives a percentage of .43
+to-report probability-score [range dist] 
+  let relative-distance (dist / range) * 2
+  report (relative-distance + 0.98) / (relative-distance ^ 2 + relative-distance + 1)
 end
 
 ; --- Setup global parameters ---
