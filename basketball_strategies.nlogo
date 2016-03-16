@@ -181,9 +181,8 @@ end
 
 to-report can-move [agent]
   let allowed true
-  let agentset (players with [team = "lakers" or team = "celtics" ])
   ask agent [
-    if min-one-of agentset [distance patch-ahead 1] < 4 [ set allowed false print "cannot move"]
+    if distance min-one-of other players [distance patch-ahead 1] < 1 [ set allowed false print "cannot move"]
   ]
   report allowed
 end
@@ -227,10 +226,11 @@ to execute-actions
         ask ball 11 [
         fd dist ]
 
-
     if intention = "no intention"[
       left random 360
     ]
+
+    if can-move self [ fd 1 ]
   ]
   ]
 end
