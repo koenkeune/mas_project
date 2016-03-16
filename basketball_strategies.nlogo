@@ -35,6 +35,7 @@ players-own[
   is-open?
   shooting-range
   in-shooting-range?
+  loose-ball?
 ]
 
 balls-own[
@@ -57,7 +58,7 @@ end
 ; --- Main processing cycle ---
 to go
   if time = 0 [random-bounce 15]
-  if time = 100 [ stop ]
+  ;if time = 100 [ stop ]
   update-desires
   update-beliefs
   update-intentions
@@ -72,8 +73,12 @@ end
 ; --- Update desires ---
 to update-desires
   ask players [
-    ifelse team-has-ball? [ set desire "score" ]
-    [ set desire "defend" ]
+
+    ifelse loose-ball? [ set desire "get ball" ]
+    [
+      ifelse team-has-ball? [ set desire "score" ]
+      [ set desire "defend" ]
+    ]
     ; might have to add when no one has the ball for loose balls
   ]
 end
@@ -105,6 +110,7 @@ end
 ; pass
 ; walk
 to update-intentions
+  ; add desires to it
   ask players [
     ifelse player-has-ball? [
       set intention "walk with ball"

@@ -142,7 +142,7 @@ end
 
 ; --- Setup global parameters ---
 to setup-parameters
-  set distance-for-possesion 1
+  set distance-for-possesion 3
   set time 0
   ;set speed 1
 end
