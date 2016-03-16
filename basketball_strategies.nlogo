@@ -30,6 +30,7 @@ players-own[
   intention
   team
   basket-to-score
+  basket-to-defend
   player-has-ball?
   team-has-ball?
   is-open?
@@ -59,8 +60,8 @@ end
 to go
   if time = 0 [random-bounce 15]
   ;if time = 100 [ stop ]
-  update-desires
   update-beliefs
+  update-desires
   update-intentions
   execute-actions
   ;send-messages
@@ -69,17 +70,18 @@ to go
   tick
 
 end
+to-report referee-owns-ball
+  let owns False
+  ask referees [ if ([team] of ([owner] of ball 11) = [team] of self) [ set owns True ] ]
+  report owns
+end
 
 ; --- Update desires ---
 to update-desires
   ask players [
-
-    ifelse loose-ball? [ set desire "get ball" ]
-    [
-      ifelse team-has-ball? [ set desire "score" ]
-      [ set desire "defend" ]
-    ]
-    ; might have to add when no one has the ball for loose balls
+    ifelse referee-owns-ball
+    [ set desire "get-ball" ]
+    [ ifelse team-has-ball? [ set desire "score" ] [ set desire "defend" ] ]
   ]
 end
 
@@ -87,6 +89,7 @@ end
 ; team has ball
 ; player has ball
 to update-beliefs
+  ask ball 11 [ set owner referee 10 ]
   ask players [
     ifelse (distance ball-position) < distance-for-possesion [
       set player-has-ball? true
@@ -103,6 +106,29 @@ to update-beliefs
       set team-has-ball? true
     ][ set team-has-ball? false ]
   ]
+
+  ask players [
+    if team-has-ball? and not player-has-ball? [
+      ifelse (any? other players with [player-has-ball? = false] in-cone (distance ball 11) 20) or (any? other players with [player-has-ball? = false] in-radius 1.5)
+      [ set is-open? true ] [ set is-open? false ]
+    ]
+  ]
+
+end
+
+to-report is-nearest [ obj agent]
+  let agentset 0
+  let nearest agent
+
+  ; create the agentset
+  ask agent [ ifelse [team] of self = "lakers"
+    [ set agentset (players with [team = "lakers"]) ]
+    [ set agentset (players with [team = "celtics"]) ]
+  ]
+  ; find nearest agent from set
+  ask obj [ set nearest (min-one-of agentset [distance myself]) ]
+  ; report back
+  ifelse nearest = agent [ report True ] [ report False ]
 end
 
 ; --- Update intentions ---
@@ -112,36 +138,103 @@ end
 to update-intentions
   ; add desires to it
   ask players [
-    ifelse player-has-ball? [
-      set intention "walk with ball"
-    ][
-    ifelse in-shooting-range? [
-      set intention "shoot"
-    ][
-      set intention "no intention"
-    ]]
+    if desire = "get-ball"
+    [ ; if nearest to ball: move-towards-ball, else: move-random
+      ifelse is-nearest ball 11 self
+      [ set intention "move-towards-ball" ] [ set intention "move-random" ]
+      ]
+    if desire = "defend"
+    [ ; if nearest to ball, defend ball, else: defend player
+      ifelse is-nearest ball 11 self
+      [ set intention "move-towards-ball" ] [ set intention "defend-player" ]
+    ]
+    if desire = "score" [
+     ifelse player-has-ball?
+     [ ; shoot or move or pass -> should improve.
+       ifelse in-shooting-range self [ set intention "shoot" ]
+       [ set intention "move-ball" ]
+        ]
+    [ set intention "open-position" ]
+    ]
+
+
   ]
 end
 
+to-report nearest-opponent [ player ]
+  let agentset 0
+  let nearest player
+  ask player [ ifelse [team] of self = "celtics"
+    [ set agentset (players with [team = "lakers"  and not player-has-ball? ] ) ]
+    [ set agentset (players with [team = "celtics"  and not player-has-ball?]) ]
+  ]
+  ask player [ set nearest (min-one-of agentset [distance myself]) ]
+  report nearest
+end
+
+to-report in-shooting-range [agent]
+  let can-shoot false
+  ask agent [ if distance one-of basket-to-score < shooting-range [ set can-shoot true ] ]
+  report can-shoot
+end
+to-report clear-line [agent1 agent2]
+  ; to add
+  report true
+end
+
+to-report can-move [agent]
+  let allowed true
+  ask agent [
+    if distance min-one-of other players [distance patch-ahead 1] < 1 [ set allowed false print "cannot move"]
+  ]
+  report allowed
+end
+
+
 ; --- Execute actions ---
 to execute-actions
+  ;print get-nearest ball 11
+
+
+
   ask players [
-    if intention = "walk with ball" [
+    ; still add the if can-move [ fd 1 ]
+    if intention = "move-towards-ball" [
+      ; get position of ball, head to that location.
+      face ball 11
+    ]
+    if intention = "move-random" [
+      ifelse random-float 1 < .5 [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
+    ]
+    if intention = "defend-player" [
+      ; get nearest defendable player
+      let defended nearest-opponent self
+      face defended
+      ask defended [ set is-open? false ]
+    ]
+    if intention = "move-ball" [
       face one-of basket-to-score
-      fd 1
       ask ball 11 [
         set heading ([heading] of owner) ; make it go the same direction
         setxy ([xcor] of myself) ([ycor] of myself)
-        fd 1
       ]
     ]
-    if intention = "shoot" [
-
+    if intention = "open-position" [
+      if not is-open? [ set heading heading + 30 ]
     ]
+    if intention = "shoot" [
+        face one-of basket-to-score
+        ;setxy basket-to-score
+        let dist distance one-of basket-to-score
+        ask ball 11 [
+        fd dist ]
+
     if intention = "no intention"[
       left random 360
-      fd 1
     ]
+
+    if can-move self [ fd 1 ]
+  ]
   ]
 end
 @#$#@#$#@
