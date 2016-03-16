@@ -58,8 +58,8 @@ end
 to go
   if time = 0 [random-bounce 15]
   if time = 100 [ stop ]
-  update-desires
   update-beliefs
+  update-desires
   update-intentions
   execute-actions
   ;send-messages
@@ -105,6 +105,13 @@ to update-beliefs
     ][ set team-has-ball? false ]
   ]
 
+  ask players [
+    if team-has-ball? and not player-has-ball? [
+      ifelse (any? other players with [player-has-ball? = false] in-cone (distance ball 11) 20) or (any? other players with [player-has-ball? = false] in-radius 1.5)
+      [ set is-open? true ] [ set is-open? false ]
+    ]
+  ]
+
 end
 
 to-report is-nearest [ obj agent]
@@ -148,7 +155,6 @@ to update-intentions
     ]
 
 
-    print intention
   ]
 end
 
@@ -173,6 +179,14 @@ to-report clear-line [agent1 agent2]
   report true
 end
 
+to-report can-move [agent]
+  let allowed true
+  let agentset (players with [team = "lakers" or team = "celtics" ])
+  ask agent [
+    if min-one-of agentset [distance patch-ahead 1] < 4 [ set allowed false print "cannot move"]
+  ]
+  report allowed
+end
 
 
 ; --- Execute actions ---
@@ -182,40 +196,40 @@ to execute-actions
 
 
   ask players [
+    ; still add the if can-move [ fd 1 ]
     if intention = "move-towards-ball" [
       ; get position of ball, head to that location.
       face ball 11
-      fd 1
     ]
     if intention = "move-random" [
       ifelse random-float 1 < .5 [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
-      fd 1
     ]
     if intention = "defend-player" [
       ; get nearest defendable player
       let defended nearest-opponent self
       face defended
-      fd 1
       ask defended [ set is-open? false ]
     ]
     if intention = "move-ball" [
       face one-of basket-to-score
-      fd 1
       ask ball 11 [
         set heading ([heading] of owner) ; make it go the same direction
         setxy ([xcor] of myself) ([ycor] of myself)
-        fd 1
       ]
     ]
+    if intention = "open-position" [
+      if not is-open? [ set heading heading + 30 ]
+    ]
     if intention = "shoot" [
-      ask ball 11 [
         face one-of basket-to-score
         ;setxy basket-to-score
-        fd distance basket-to-score
-    ]
+        let dist distance one-of basket-to-score
+        ask ball 11 [
+        fd dist ]
+
+
     if intention = "no intention"[
       left random 360
-      fd 1
     ]
   ]
   ]
