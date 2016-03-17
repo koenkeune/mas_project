@@ -1,0 +1,67 @@
+; probability that the ball goes in is a function of the player's range and the distance to the basket
+; relative distance makes the function better scale on the range of a player
+; maximal range without defense gives a percentage of .43
+to-report probability-score [range dist] 
+  let relative-distance (dist / range) * 2
+  report (relative-distance + 0.98) / (relative-distance ^ 2 + relative-distance + 1)
+end
+
+to jump-ball [max-dist]
+  ask ball 11 [
+    let distX 0 ; have to initialize
+    let distY 0
+
+    ifelse random 2 = 1 [
+      set distX (random-float max-dist) + 4
+    ][ set distX -1 * (random-float max-dist) + 4 ]
+
+    ifelse random 2 = 1 [
+      set distY (random-float max-dist) + 4
+    ][ set distY -1 * (random-float max-dist) + 4 ]
+
+    setxy xcor + distX ycor + distY
+  ]
+end
+
+
+to inbound [team-that-scored]
+  ifelse team-that-scored = "lakers" [
+    ask player random 5 [
+      setxy height + 1 10
+    ]
+    ask ball 11 [
+      setxy height + 0.5 10 
+    ]
+  ][
+    ask player ((random 5) + 5) [
+      setxy -1 * height - 1 10 
+    ]
+    ask ball 11 [
+      setxy -1 * height - 0.5 10 
+    ]
+  ]
+end
+
+to bounce-off-rim [team-that-missed max-dist]
+  ask ball 11 [
+    let distX 0
+    let distY 0
+    
+    while [distX + distY < 3] [ ; make sure the ball bounces far enough
+      ifelse random 2 = 1 [
+        set distY random-float max-dist
+      ][
+      set distY -1 * (random-float max-dist)
+      ]
+        
+      ifelse team-that-missed = "lakers" [
+        set distX -1 * (random-float max-dist)
+      ][
+        set distX random-float max-dist
+      ]
+    ]
+    
+    setxy xcor + distX ycor + distY
+  ]
+end
+

@@ -5,6 +5,8 @@ to setup-court
   setup-lines
   set basket1-pos patches with [pxcor = height - 4 and pycor = 0]
   set basket2-pos patches with [pxcor = -1 * height + 4 and pycor = 0]
+  set inbound1 patches with [pxcor = height + 1 and pycor = 10]
+  set inbound2 patches with [pxcor = -1 * height - 1 and pycor = 10]
 end
 
 to setup-lines ; set the lines
@@ -76,6 +78,7 @@ to setup-game
     set team "celtics"
     set color green
     set basket-to-score basket2-pos
+    set place-to-inbound inbound1
     ;set basket-to-defend basket1-pos
   ]
 
@@ -83,6 +86,7 @@ to setup-game
     set team "lakers"
     set color yellow
     set basket-to-score basket1-pos
+    set place-to-inbound inbound2
     ;set basket-to-defend basket2-pos
   ]
 
@@ -116,8 +120,6 @@ to setup-game
     setxy 0 0
     set owner referee 10
     set ball-position self
-    set shot-made false
-    set shot-missed false
   ]
 
   set points-lakers 0
@@ -128,35 +130,12 @@ to pos-player [number x y]
   ask player number [ setxy x y ]
 end
 
-to random-bounce [max-dist]
-  ask balls [
-    let distX 0 ; have to initialize
-    let distY 0
-
-    ifelse random 2 = 1 [
-      set distX random max-dist
-    ][ set distX -1 * random max-dist ]
-
-    ifelse random 2 = 1 [
-      set distY random max-dist
-    ][ set distY -1 * random max-dist ]
-
-    setxy xcor + distX ycor + distY
-  ]
-end
-
-; probability that the ball goes in is a function of the player's range and the distance to the basket
-; relative distance makes the function better scale on the range of a player
-; maximal range without defense gives a percentage of .43
-to-report probability-score [range dist] 
-  let relative-distance (dist / range) * 2
-  report (relative-distance + 0.98) / (relative-distance ^ 2 + relative-distance + 1)
-end
-
 ; --- Setup global parameters ---
 to setup-parameters
-  set distance-for-possesion 3
+  set distance-for-possession 3
   set time 0
+  set shot-made "false"
+  set shot-missed "false"
   ;set speed 1
 end
 

@@ -1,7 +1,8 @@
 ; UVA/VU - Multi-Agent Systems
 ; Koen Keune & Marysia Winkels
 
-__includes["setup_koen.nls"]
+__includes["setup_koen.nls" "general_functions.nls"]
+
 
 ; --- Global variables ---
 globals [
@@ -11,11 +12,14 @@ globals [
   points-lakers
   points-celtics
   ball-position
-  distance-for-possesion
-  basket1-pos
+  distance-for-possession ; determines the distance a player must have from the ball to have possesion of it
+  basket1-pos ; position 1 to score
   basket2-pos
+  inbound1 ; position 1 to inbound
+  inbound2
+  shot-made ; team that scored or false
+  shot-missed ; team that missed or false
   ;speed
-  ;distance-to-basket
 ]
 
 ; --- Agents ---
@@ -37,12 +41,11 @@ players-own[
   in-shooting-range?
   loose-ball?
   closest-to-ball
+  place-to-inbound
 ]
 
 balls-own[
   owner
-  shot-made
-  shot-missed
 ]
 
 referees-own [
@@ -60,8 +63,17 @@ end
 
 ; --- Main processing cycle ---
 to go
-  if time = 0 [random-bounce 15]
+  if time = 0 [jump-ball 15]
   ;if time = 100 [ stop ]
+  if shot-made != "false" [
+    inbound shot-made
+    set shot-made "false"
+    ]
+  if shot-missed != "false" [
+    bounce-off-rim shot-missed 15
+    set shot-missed "false"
+  ]
+
   update-beliefs ; desires need up-to-date beliefs
   update-desires
   update-intentions
@@ -70,7 +82,6 @@ to go
 
   set time time + 1
   tick
-
 end
 
 ; --- Update desires ---
@@ -94,12 +105,9 @@ to update-beliefs
   ask ball 11 [
     set closest-Laker min-one-of (players with [team = "lakers"]) [distance myself]
     set closest-Celtic min-one-of (players with [team = "celtics"]) [distance myself]
-
-
   ]
 
   ask players [
-
     ifelse closest-Laker = self [
       set closest-to-ball closest-laker
     ][
@@ -107,7 +115,7 @@ to update-beliefs
       set closest-to-ball closest-celtic ]
     ]
 
-    ifelse (closest-to-ball = self) and ((distance ball-position) < distance-for-possesion) [
+    ifelse (closest-to-ball = self) and ((distance ball-position) < distance-for-possession) [ ; this player has the ball
       set loose-ball? false
       set player-has-ball? true
       ask ball 11 [set owner myself]
@@ -142,9 +150,10 @@ to update-intentions
   ; add desires to it
   ask players [
     ifelse desire = "get ball" [
-      if closest-to-ball = self [
+      ifelse closest-to-ball = self [
         set intention "go to ball"
-      ]
+      ][
+        set intention "no intention"]
     ][
     ifelse desire = "score" [
       ifelse player-has-ball? and in-shooting-range? [
@@ -157,8 +166,8 @@ to update-intentions
       ]]
     ][
     if desire = "defend" [
-      set intention "no intention"]]
-    ]
+      set intention "no intention"]
+    ]]
   ]
 end
 
@@ -179,6 +188,7 @@ to execute-actions
       let yBasket 0
       let distance-to-basket 0
       let range shooting-range
+      let teamTemp team
 
       ask basket-to-score [
         set xBasket pxcor
@@ -189,17 +199,20 @@ to execute-actions
       ask ball 11 [
         setxy xBasket yBasket
 
-        print range
-        print distance-to-basket
-        print probability-score range distance-to-basket
-
-        ifelse random probability-score range distance-to-basket > (probability-score range distance-to-basket / 2) [
-          set shot-made true
+        ifelse random-float 1 < probability-score range distance-to-basket [
+          set shot-made teamTemp
+          ; no 3-pointers yet
+          ifelse teamTemp = "lakers" [
+            set points-lakers points-lakers + 2
+          ][
+            set points-celtics points-celtics + 2
+          ]
         ][
-          set shot-missed true
+          set shot-missed teamTemp
         ]
 
       ]
+
     ]
     if intention = "no intention"[
       left random 360
@@ -211,11 +224,6 @@ to execute-actions
     ]
   ]
 end
-
-
-
-
-
 
 
 
@@ -284,9 +292,9 @@ NIL
 
 BUTTON
 215
-83
+84
 278
-116
+117
 NIL
 go\n
 NIL
