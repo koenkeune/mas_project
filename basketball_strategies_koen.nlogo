@@ -19,6 +19,7 @@ globals [
   inbound2
   shot-made ; team that scored or false
   shot-missed ; team that missed or false
+  loose-ball?
   ;speed
 ]
 
@@ -39,9 +40,9 @@ players-own[
   is-open?
   shooting-range
   in-shooting-range?
-  loose-ball?
   closest-to-ball
   place-to-inbound
+  players-open
 ]
 
 balls-own[
@@ -132,13 +133,17 @@ to update-beliefs
       ]
 
     ][ set player-has-ball? false ]
-  ]
 
-  ask players [ ; update team has ball
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
       set team-has-ball? true
     ][ set team-has-ball? false ]
   ]
+
+;  ask players [ ; update team has ball, such that everyone know it instantly
+;    ifelse ([team] of ([owner] of ball 11) = [team] of self) [
+;      set team-has-ball? true
+;    ][ set team-has-ball? false ]
+;  ]
 
 end
 
@@ -210,9 +215,7 @@ to execute-actions
         ][
           set shot-missed teamTemp
         ]
-
       ]
-
     ]
     if intention = "no intention"[
       left random 360
@@ -379,7 +382,7 @@ MONITOR
 147
 266
 Beliefs of player 1
-[player-has-ball?] of player 1
+[team-has-ball?] of player 1
 17
 1
 11
@@ -390,7 +393,7 @@ MONITOR
 319
 263
 Beliefs of player 6
-[player-has-ball?] of player 6
+[team-has-ball?] of player 6
 17
 1
 11

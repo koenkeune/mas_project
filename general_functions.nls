@@ -13,11 +13,11 @@ to jump-ball [max-dist]
 
     ifelse random 2 = 1 [
       set distX (random-float max-dist) + 4
-    ][ set distX -1 * (random-float max-dist) + 4 ]
+    ][ set distX -1 * (random-float max-dist) - 4 ]
 
     ifelse random 2 = 1 [
       set distY (random-float max-dist) + 4
-    ][ set distY -1 * (random-float max-dist) + 4 ]
+    ][ set distY -1 * (random-float max-dist) - 4 ]
 
     setxy xcor + distX ycor + distY
   ]
