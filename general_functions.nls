@@ -47,11 +47,11 @@ to bounce-off-rim [team-that-missed max-dist]
     let distX 0
     let distY 0
     
-    while [distX + distY < 3] [ ; make sure the ball bounces far enough
+    while [abs distX + abs distY < 3] [ ; make sure the ball bounces far enough
       ifelse random 2 = 1 [
         set distY random-float max-dist
       ][
-      set distY -1 * (random-float max-dist)
+        set distY -1 * (random-float max-dist)
       ]
         
       ifelse team-that-missed = "lakers" [

@@ -20,6 +20,7 @@ globals [
   shot-made ; team that scored or false
   shot-missed ; team that missed or false
   loose-ball?
+  vision-distance
   ;speed
 ]
 
@@ -112,9 +113,10 @@ to update-beliefs
     ifelse closest-Laker = self [
       set closest-to-ball closest-laker
     ][
-    if closest-celtic = self [
-      set closest-to-ball closest-celtic ]
-    ]
+    ifelse closest-celtic = self [
+      set closest-to-ball closest-celtic
+    ][
+      set closest-to-ball 0 ]]
 
     ifelse (closest-to-ball = self) and ((distance ball-position) < distance-for-possession) [ ; this player has the ball
       set loose-ball? false
@@ -125,6 +127,41 @@ to update-beliefs
       ask basket-to-score [
         set distance-to-basket distance myself
       ]
+
+
+      ; ******** open teammate shizzle ********
+      let players-own-team other players in-cone vision-distance 160 with [team = [team] of myself] ; all players of own team in vision cone
+      let players-other-team other players in-cone vision-distance 160 with [team != [team] of myself] ; all player of other team in vision cone
+      let players-open-temp []
+
+      ask players-own-team [
+        let open true
+        let dist-ball-teammate distance myself ; distance of player with ball to player-own-team
+
+        ;if distance myself [ ; distance to player with ball to player-own-team
+          ;set players-open lput self
+        ;]
+        ask players-other-team [
+          let dist-ball-opponent 0
+          let dist-teammate-opponent distance myself ; distance of teammate to opponent
+          ;print distance myself
+
+          ask players with [player-has-ball? = true] [
+            set dist-ball-opponent distance myself
+          ]
+
+          if dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent [ ; third option has to be added
+            set open false
+          ]
+        ]
+
+        if not open [
+          set players-open-temp lput myself players-open-temp
+        ]
+      ]
+      set players-open players-open-temp ; temp is used because it is in the wrong turtle
+      ; ******** open teammate shizzle ********
+
 
       ifelse distance-to-basket < shooting-range [
         set in-shooting-range? true
@@ -139,11 +176,7 @@ to update-beliefs
     ][ set team-has-ball? false ]
   ]
 
-;  ask players [ ; update team has ball, such that everyone know it instantly
-;    ifelse ([team] of ([owner] of ball 11) = [team] of self) [
-;      set team-has-ball? true
-;    ][ set team-has-ball? false ]
-;  ]
+  ;(any? other players with [team-has-ball? = false] in-cone (distance the-ball) 85) or (any? other players with [team-has-ball? = false] in-radius locate-player-distance)
 
 end
 
@@ -155,6 +188,7 @@ to update-intentions
   ; add desires to it
   ask players [
     ifelse desire = "get ball" [
+      ;ifelse closest-Laker = self or closest-celtic = self [
       ifelse closest-to-ball = self [
         set intention "go to ball"
       ][
@@ -164,11 +198,14 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
+      ifelse not empty? players-open [
+        set intention "pass"
+      ][
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
       set intention "no intention"
-      ]]
+      ]]]
     ][
     if desire = "defend" [
       set intention "no intention"]
@@ -214,6 +251,7 @@ to execute-actions
           ]
         ][
           set shot-missed teamTemp
+          set loose-ball? true
         ]
       ]
     ]
@@ -225,9 +263,11 @@ to execute-actions
       face ball 11
       fd 1
     ]
+    if intention = "pass" [
+
+    ]
   ]
 end
-
 
 
 
@@ -382,7 +422,7 @@ MONITOR
 147
 266
 Beliefs of player 1
-[team-has-ball?] of player 1
+[closest-to-ball] of player 1
 17
 1
 11

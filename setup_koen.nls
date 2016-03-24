@@ -137,6 +137,7 @@ to setup-parameters
   set shot-made "false"
   set shot-missed "false"
   set loose-ball? true
+  set vision-distance 50
   ;set speed 1
 end
 
