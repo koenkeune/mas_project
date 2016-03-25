@@ -65,7 +65,7 @@ to update-beliefs
       set player-has-ball? true
       ask ball 11 [
         set owner myself
-        set ball-passed? false
+        ;set ball-passed? false
       ]
 
       let distance-to-basket 0
@@ -75,10 +75,12 @@ to update-beliefs
 
 
       ; ******** open teammate shizzle ********
-      let players-own-team other players in-cone vision-distance 160 with [team = [team] of myself] ; all players of own team in vision cone
-      let players-other-team other players in-cone vision-distance 160 with [team != [team] of myself] ; all player of other team in vision cone
+      let players-own-team other (players in-cone vision-distance 160) with [team = [team] of myself] ; all players of own team in vision cone
+      let players-other-team other (players in-cone vision-distance 160) with [team != [team] of myself] ; all player of other team in vision cone
       let players-open-temp []
 
+
+      ;repeat length players-own-team [
       ask players-own-team [
         let open true
         let dist-ball-teammate distance myself ; distance of player with ball to player-own-team
@@ -91,27 +93,41 @@ to update-beliefs
             set dist-ball-opponent distance myself
           ]
 
-          if dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent [ ; third option has to be added
+          if not (dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent) [ ; third option has to be added if it doesnt work
             set open false
           ]
         ]
 
         if not open [
-          set players-open-temp lput myself players-open-temp
+          set players-open-temp lput self players-open-temp
         ]
       ]
-      set players-open players-open-temp ; temp is used because it is in the wrong turtle
+      set players-open players-open-temp ; temp is used because it is in a different turtle scope
 
-      let best-option-temp 0
-      ask ball 11 [
-        ifelse length players-open-temp > 1 [
-          set best-option-temp min-one-of players-open-temp [distance myself] ; should be closest to the basket
-        ][
-        if length players-open-temp = 1 [
-          set best-option-temp item 0 players-open-temp
-        ]]
+      if not empty? players-open-temp [
+        let best-option-temp1 item 0 players-open-temp
+        ask basket-to-score [
+          if length players-open-temp > 1 [
+
+            let distance-to-score1 distance item 0 players-open-temp ; should probably use ask turtles
+            let counter 1 ; skip the first one
+            repeat length players-open-temp - 1 [
+              ask item counter players-open-temp [
+                let best-option-temp2 self
+                let distance-to-score2 distance myself
+                if distance-to-score2 < distance-to-score1 [
+                  set best-option-temp1 best-option-temp2
+                  set distance-to-score1 distance-to-score2
+                ]
+              ]
+              set counter counter + 1
+
+            ]
+          ]
+        ]
+        set best-option best-option-temp1
       ]
-      set best-option best-option-temp
+      print best-option
       ; ******** open teammate shizzle ********
 
 
@@ -125,9 +141,6 @@ to update-beliefs
       set team-has-ball? true
     ][ set team-has-ball? false ]
   ]
-
-  ;(any? other players with [team-has-ball? = false] in-cone (distance the-ball) 85) or (any? other players with [team-has-ball? = false] in-radius locate-player-distance)
-
 end
 
 ; --- Update intentions ---
@@ -154,11 +167,8 @@ to update-intentions
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
-      ifelse best-option = self [ ; should be after communication somehow and ideally also still moves
-        set intention "ask ball"
-      ][
       set intention "no intention"
-      ]]]]
+      ]]]
     ][
     if desire = "defend" [
       set intention "no intention"]
@@ -217,12 +227,19 @@ to execute-actions
       fd 1
     ]
     if intention = "pass" [
-      set target one-of players-open ; should be the best option instead
+      set target best-option ;one-of players-open ; should be the best option instead
       face target
-      print target
+      let xTarget 0
+      let yTarget 0
+      ask target [
+        set xTarget pxcor
+        set yTarget pycor
+      ]
+      ;print target
 
       ask ball 11 [
-        set ball-passed? true
+        setxy xTarget yTarget
+        ;set ball-passed? true
       ]
     ]
     if intention = "ask ball" [
@@ -230,14 +247,20 @@ to execute-actions
     ]
   ]
 
-  ask ball 11 [
-    if ball-passed? [
-      fd 3
-      set loose-ball? true
+;  ask ball 11 [
+;    if ball-passed? [
+;      fd 3
+;      set loose-ball? true
+;    ]
+;  ]
+
+  ask players [
+    if player-has-ball? [
+      ;print intention
+      ;print self
     ]
   ]
 end
-
 
 
 @#$#@#$#@
