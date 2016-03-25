@@ -98,7 +98,7 @@ to update-beliefs
           ]
         ]
 
-        if not open [
+        if open [
           set players-open-temp lput self players-open-temp
         ]
       ]
@@ -161,13 +161,13 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
-      ifelse not empty? players-open [
+      ifelse player-has-ball? and not empty? players-open [
         set intention "pass"
       ][
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
-      set intention "no intention"
+      set intention "get open"
       ]]]
     ][
     if desire = "defend" [
@@ -242,8 +242,9 @@ to execute-actions
         ;set ball-passed? true
       ]
     ]
-    if intention = "ask ball" [
-      face ball 11 ; dont move
+    if intention = "get open" [
+      ;face randomSpot
+      ;fd 1
     ]
   ]
 
