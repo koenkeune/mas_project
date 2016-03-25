@@ -1,3 +1,56 @@
+; --- Global variables ---
+globals [
+  width         ; width of the court
+  height        ; height of the court
+  time
+  points-lakers
+  points-celtics
+  ball-position
+  distance-for-possession ; determines the distance a player must have from the ball to have possesion of it
+  basket1-pos ; position 1 to score
+  basket2-pos
+  inbound1 ; position 1 to inbound
+  inbound2
+  shot-made ; team that scored or false
+  shot-missed ; team that missed or false
+  loose-ball?
+  vision-distance
+  target
+  closest-to-ball
+  ;speed
+]
+
+; --- Agents ---
+breed [players player]
+breed [balls ball]
+breed [referees referee]
+
+; --- Local variables ---
+; beliefs are: ball, team-has-ball, team, basket-to-score, if the player has the ball, ...
+players-own[
+  desire
+  intention
+  team
+  basket-to-score
+  player-has-ball?
+  team-has-ball?
+  is-open?
+  shooting-range
+  in-shooting-range?
+  place-to-inbound
+  players-open
+  best-option
+]
+
+balls-own[
+  owner
+  ball-passed?
+]
+
+referees-own [
+  team
+]
+
 ; --- Setup the lines and the baskets of the court ---
 to setup-court
   set width 50 / 2
@@ -120,6 +173,7 @@ to setup-game
     setxy 0 0
     set owner referee 10
     set ball-position self
+    set ball-passed? false
   ]
 
   set points-lakers 0
@@ -132,7 +186,7 @@ end
 
 ; --- Setup global parameters ---
 to setup-parameters
-  set distance-for-possession 2
+  set distance-for-possession 3
   set time 0
   set shot-made "false"
   set shot-missed "false"

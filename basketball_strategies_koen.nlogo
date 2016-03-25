@@ -3,57 +3,6 @@
 
 __includes["setup_koen.nls" "general_functions.nls"]
 
-
-; --- Global variables ---
-globals [
-  width         ; width of the court
-  height        ; height of the court
-  time
-  points-lakers
-  points-celtics
-  ball-position
-  distance-for-possession ; determines the distance a player must have from the ball to have possesion of it
-  basket1-pos ; position 1 to score
-  basket2-pos
-  inbound1 ; position 1 to inbound
-  inbound2
-  shot-made ; team that scored or false
-  shot-missed ; team that missed or false
-  loose-ball?
-  vision-distance
-  ;speed
-]
-
-; --- Agents ---
-breed [players player]
-breed [balls ball]
-breed [referees referee]
-
-; --- Local variables ---
-; beliefs are: ball, team-has-ball, team, basket-to-score, if the player has the ball, ...
-players-own[
-  desire
-  intention
-  team
-  basket-to-score
-  player-has-ball?
-  team-has-ball?
-  is-open?
-  shooting-range
-  in-shooting-range?
-  closest-to-ball
-  place-to-inbound
-  players-open
-]
-
-balls-own[
-  owner
-]
-
-referees-own [
-  team
-]
-
 ; --- Setup ---
 to setup
   clear-all
@@ -107,21 +56,17 @@ to update-beliefs
   ask ball 11 [
     set closest-Laker min-one-of (players with [team = "lakers"]) [distance myself]
     set closest-Celtic min-one-of (players with [team = "celtics"]) [distance myself]
+    set closest-to-ball min-one-of players [distance myself]
   ]
 
   ask players [
-    ifelse closest-Laker = self [
-      set closest-to-ball closest-laker
-    ][
-    ifelse closest-celtic = self [
-      set closest-to-ball closest-celtic
-    ][
-      set closest-to-ball 0 ]]
-
-    ifelse (closest-to-ball = self) and ((distance ball-position) < distance-for-possession) [ ; this player has the ball
+    ifelse (closest-to-ball = self) and (distance ball-position < distance-for-possession) [ ; this player has the ball
       set loose-ball? false
       set player-has-ball? true
-      ask ball 11 [set owner myself]
+      ask ball 11 [
+        set owner myself
+        set ball-passed? false
+      ]
 
       let distance-to-basket 0
       ask basket-to-score [
@@ -138,13 +83,9 @@ to update-beliefs
         let open true
         let dist-ball-teammate distance myself ; distance of player with ball to player-own-team
 
-        ;if distance myself [ ; distance to player with ball to player-own-team
-          ;set players-open lput self
-        ;]
         ask players-other-team [
           let dist-ball-opponent 0
           let dist-teammate-opponent distance myself ; distance of teammate to opponent
-          ;print distance myself
 
           ask players with [player-has-ball? = true] [
             set dist-ball-opponent distance myself
@@ -160,12 +101,21 @@ to update-beliefs
         ]
       ]
       set players-open players-open-temp ; temp is used because it is in the wrong turtle
+
+      let best-option-temp 0
+      ask ball 11 [
+        ifelse length players-open-temp > 1 [
+          set best-option-temp min-one-of players-open-temp [distance myself] ; should be closest to the basket
+        ][
+        if length players-open-temp = 1 [
+          set best-option-temp item 0 players-open-temp
+        ]]
+      ]
+      set best-option best-option-temp
       ; ******** open teammate shizzle ********
 
 
-      ifelse distance-to-basket < shooting-range [
-        set in-shooting-range? true
-      ][
+      ifelse distance-to-basket < shooting-range [ set in-shooting-range? true ][
         set in-shooting-range? false
       ]
 
@@ -188,7 +138,7 @@ to update-intentions
   ; add desires to it
   ask players [
     ifelse desire = "get ball" [
-      ;ifelse closest-Laker = self or closest-celtic = self [
+      ;ifelse closest-Laker = self or closest-Celtic = self [
       ifelse closest-to-ball = self [
         set intention "go to ball"
       ][
@@ -204,8 +154,11 @@ to update-intentions
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
+      ifelse best-option = self [ ; should be after communication somehow and ideally also still moves
+        set intention "ask ball"
+      ][
       set intention "no intention"
-      ]]]
+      ]]]]
     ][
     if desire = "defend" [
       set intention "no intention"]
@@ -264,7 +217,23 @@ to execute-actions
       fd 1
     ]
     if intention = "pass" [
+      set target one-of players-open ; should be the best option instead
+      face target
+      print target
 
+      ask ball 11 [
+        set ball-passed? true
+      ]
+    ]
+    if intention = "ask ball" [
+      face ball 11 ; dont move
+    ]
+  ]
+
+  ask ball 11 [
+    if ball-passed? [
+      fd 3
+      set loose-ball? true
     ]
   ]
 end
