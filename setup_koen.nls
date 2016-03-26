@@ -17,7 +17,7 @@ globals [
   vision-distance
   target
   closest-to-ball
-  ;speed
+  speed-with-ball
 ]
 
 ; --- Agents ---
@@ -40,6 +40,15 @@ players-own[
   place-to-inbound
   players-open
   best-option
+  spot
+  spot-defense;;;;;;
+  getting-to-offensive-spot?
+  getting-to-defensive-spot?
+  got-back?
+  ;change-of-possesion?
+  defends-ball? ; true or false for one player of the team
+  ball-is-defended? ; true or false for the whole team
+  defender-is-close?
 ]
 
 balls-own[
@@ -74,6 +83,7 @@ to setup-lines ; set the lines
   color-lines three-point-line1 black + 2
   color-lines three-point-line2 black + 2
   color-lines middle-circle white
+  color-lines paint black + 2
 end
 
 to color-lines [line col]
@@ -118,8 +128,13 @@ to-report three-point-line2
 end
 
 to-report middle-circle
-    report patches with [pxcor >= -4 and pxcor <= 4 and (pycor = -4 or pycor = 4) or
-      (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
+  report patches with [pxcor >= -4 and pxcor <= 4 and (pycor = -4 or pycor = 4) or
+    (pxcor = -4 or pxcor = 4) and (pycor >= -4 and pycor <= 4)]
+end
+
+to-report paint
+  report patches with [pxcor = height - 15 or pxcor = -1 * height + 15 and pycor >= -4 and pycor <= 4 or 
+    (pycor = -5 or pycor = 5 and ((pxcor >= height - 15 and pxcor <= height - 1) or (pxcor <= -1 * height + 15 and pxcor >= -1 * height + 1)))]
 end
 
 ; --- Setup the players and the ball ---
@@ -161,6 +176,15 @@ to setup-game
      set shooting-range 15 ; all have the same shooting range for now
      set in-shooting-range? false
      set players-open []
+     set getting-to-offensive-spot? false
+     set getting-to-defensive-spot? false
+     ;set spot [0 0]
+     set got-back? false
+     ;set change-of-possesion? false
+     set player-has-ball? false
+     set defends-ball? false
+     set ball-is-defended? false
+     set defender-is-close? false
   ]
 
   create-referees 1 [
@@ -192,7 +216,7 @@ to setup-parameters
   set shot-missed "false"
   set loose-ball? true
   set vision-distance 50
-  ;set speed 1
+  set speed-with-ball 0.8
 end
 
 ; --- Setup ticks ---

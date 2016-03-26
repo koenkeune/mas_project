@@ -15,7 +15,6 @@ end
 ; --- Main processing cycle ---
 to go
   if time = 0 [jump-ball 15]
-  ;if time = 100 [ stop ]
   if shot-made != "false" [
     inbound shot-made
     set shot-made "false"
@@ -29,7 +28,7 @@ to go
   update-desires
   update-intentions
   execute-actions
-  ;send-messages
+  send-messages
 
   set time time + 1
   tick
@@ -50,14 +49,12 @@ end
 ; team has ball
 ; player has ball
 to update-beliefs
-  let closest-laker 0 ; initialize outside ball
-  let closest-celtic 0
-
   ask ball 11 [
-    set closest-Laker min-one-of (players with [team = "lakers"]) [distance myself]
-    set closest-Celtic min-one-of (players with [team = "celtics"]) [distance myself]
+    ;set closest-celtic min-one-of (players with [team = "celtics"]) [distance myself]
     set closest-to-ball min-one-of players [distance myself]
   ]
+
+  ;receive-message
 
   ask players [
     ifelse (closest-to-ball = self) and (distance ball-position < distance-for-possession) [ ; this player has the ball
@@ -65,7 +62,6 @@ to update-beliefs
       set player-has-ball? true
       ask ball 11 [
         set owner myself
-        ;set ball-passed? false
       ]
 
       let distance-to-basket 0
@@ -73,14 +69,11 @@ to update-beliefs
         set distance-to-basket distance myself
       ]
 
-
-      ; ******** open teammate shizzle ********
+      ; ******** beginning of open teammate stuff ********
       let players-own-team other (players in-cone vision-distance 160) with [team = [team] of myself] ; all players of own team in vision cone
       let players-other-team other (players in-cone vision-distance 160) with [team != [team] of myself] ; all player of other team in vision cone
       let players-open-temp []
 
-
-      ;repeat length players-own-team [
       ask players-own-team [
         let open true
         let dist-ball-teammate distance myself ; distance of player with ball to player-own-team
@@ -92,19 +85,17 @@ to update-beliefs
           ask players with [player-has-ball? = true] [
             set dist-ball-opponent distance myself
           ]
-
           if not (dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent) [ ; third option has to be added if it doesnt work
             set open false
           ]
         ]
-
         if open [
           set players-open-temp lput self players-open-temp
         ]
       ]
       set players-open players-open-temp ; temp is used because it is in a different turtle scope
 
-      if not empty? players-open-temp [
+      if not empty? players-open-temp [ ; determine the best option by looking at the closest teammate to the basket
         let best-option-temp1 item 0 players-open-temp
         ask basket-to-score [
           if length players-open-temp > 1 [
@@ -127,19 +118,53 @@ to update-beliefs
         ]
         set best-option best-option-temp1
       ]
-      print best-option
-      ; ******** open teammate shizzle ********
-
+      ; ******** end of open teammate stuff ********
 
       ifelse distance-to-basket < shooting-range [ set in-shooting-range? true ][
         set in-shooting-range? false
       ]
 
-    ][ set player-has-ball? false ]
+    ][
+      set player-has-ball? false
+
+    ]
 
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
       set team-has-ball? true
-    ][ set team-has-ball? false ]
+      set getting-to-defensive-spot? false
+      set got-back? false
+      set ball-is-defended? false
+      set defends-ball? false
+
+      print distance ball-position
+
+;      ifelse (any? players with [team-has-ball? = false] in-radius (distance ball-position) <= 5) [
+;        set defender-is-close? true
+;      ][
+;        set defender-is-close? false
+;      ]
+
+      if spot != 0 [ ; if initialized
+        if pxcor = item 0 spot and pycor = item 1 spot and getting-to-offensive-spot? [
+          set getting-to-offensive-spot? false
+        ]
+      ]
+    ][ ; defense stuff
+      set team-has-ball? false
+      set getting-to-offensive-spot? false
+      if spot != 0 [ ; if initialized
+        if pxcor = item 0 spot and pycor = item 1 spot and not got-back? [
+          set got-back? true
+        ]
+        if pxcor = item 0 spot and pycor = item 1 spot and getting-to-defensive-spot? [
+          set getting-to-defensive-spot? false
+        ]
+      ]
+      if got-back? and not ball-is-defended?[
+        set defends-ball? true
+        set ball-is-defended? true ; send-message makes the other players know it
+      ]
+    ]
   ]
 end
 
@@ -161,17 +186,25 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
-      ifelse player-has-ball? and not empty? players-open [
-        set intention "pass"
-      ][
+      ;ifelse player-has-ball? and not empty? players-open [
+      ;  set intention "pass"
+      ;][
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
       set intention "get open"
-      ]]]
+      ]];]
     ][
     if desire = "defend" [
-      set intention "no intention"]
+      ifelse not got-back? [
+        set intention "get back"
+      ][
+      ifelse defends-ball? [
+        set intention "defend ball"
+      ][
+        ;print "defending"
+        set intention "defending"
+      ]]]
     ]]
   ]
 end
@@ -181,7 +214,7 @@ to execute-actions
   ask players [
     if intention = "walk with ball" [
       face one-of basket-to-score
-      fd 1
+      fd speed-with-ball
       ask ball 11 [
         set heading ([heading] of owner) ; make it go the same direction
         setxy ([xcor] of myself) ([ycor] of myself)
@@ -227,7 +260,7 @@ to execute-actions
       fd 1
     ]
     if intention = "pass" [
-      set target best-option ;one-of players-open ; should be the best option instead
+      set target best-option
       face target
       let xTarget 0
       let yTarget 0
@@ -235,27 +268,39 @@ to execute-actions
         set xTarget pxcor
         set yTarget pycor
       ]
-      ;print target
 
       ask ball 11 [
         setxy xTarget yTarget
-        ;set ball-passed? true
       ]
     ]
     if intention = "get open" [
-      ;face randomSpot
-      ;fd 1
+      if not getting-to-offensive-spot? [ ; keep moving if it has arrived at the random spot
+        set spot offense-spot team
+        set getting-to-offensive-spot? true
+      ]
+      facexy item 0 spot item 1 spot
+      fd 1
+    ]
+    if intention = "get back" [
+      set spot paint-spot team
+      set getting-to-defensive-spot? true
+      facexy item 0 spot item 1 spot
+      fd 1
+    ]
+    if intention = "defend ball" [
+      face ball-position
+      fd 1
+    ]
+
+    if intention = "defending" [
+      left random 360
+      fd 1
     ]
   ]
 
-;  ask ball 11 [
-;    if ball-passed? [
-;      fd 3
-;      set loose-ball? true
-;    ]
-;  ]
-
-  ask players [
+  ask player 3 [
+    ;print intention
+    ;print desire
     if player-has-ball? [
       ;print intention
       ;print self
@@ -263,7 +308,22 @@ to execute-actions
   ]
 end
 
+to send-messages
+  ask players [
+    if not team-has-ball? and defends-ball? [
+      let send-to other players with [team = [team] of myself]
+      ask send-to [
+        set ball-is-defended? true ; communicate when the ball is defended (reverse is common knowledge)
+      ]
+    ]
+  ]
+end
 
+;to receive-messages
+;  ask players [
+;    if
+;  ]
+;end
 @#$#@#$#@
 GRAPHICS-WINDOW
 409

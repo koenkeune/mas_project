@@ -65,3 +65,33 @@ to bounce-off-rim [team-that-missed max-dist]
   ]
 end
 
+to-report offense-spot [team-player]
+  let x 0
+  let y 0
+  ifelse random 2 = 1 [
+    set y random width
+  ][
+    set y -1 * (random width)
+  ]
+    
+  ifelse team-player = "lakers" [
+    set x random height
+  ][
+    set x -1 * (random height)
+  ]
+  
+  report list x y
+end
+
+to-report paint-spot [team-player]
+  let x 0
+  let y 0
+  
+  ifelse team-player = "lakers" [
+    set x -1 * height + 15
+  ][
+    set x height - 15
+  ]
+  
+  report list x y
+end
