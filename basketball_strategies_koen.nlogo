@@ -25,10 +25,11 @@ to go
   ]
 
   update-beliefs ; desires need up-to-date beliefs
+  send-messages  ; updates the beliefs
   update-desires
   update-intentions
   execute-actions
-  send-messages
+
 
   set time time + 1
   tick
@@ -53,8 +54,6 @@ to update-beliefs
     ;set closest-celtic min-one-of (players with [team = "celtics"]) [distance myself]
     set closest-to-ball min-one-of players [distance myself]
   ]
-
-  ;receive-message
 
   ask players [
     ifelse (closest-to-ball = self) and (distance ball-position < distance-for-possession) [ ; this player has the ball
@@ -85,7 +84,7 @@ to update-beliefs
           ask players with [player-has-ball? = true] [
             set dist-ball-opponent distance myself
           ]
-          if not (dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent) [ ; third option has to be added if it doesnt work
+          if not (dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent) [ ; third option could be added if it doesnt work
             set open false
           ]
         ]
@@ -126,7 +125,6 @@ to update-beliefs
 
     ][
       set player-has-ball? false
-
     ]
 
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
@@ -136,13 +134,21 @@ to update-beliefs
       set ball-is-defended? false
       set defends-ball? false
 
-      print distance ball-position
+      let defender-is-close-temp? false
+      let dist distance ball-position
+      let players-close other players with [team-has-ball? = false] in-radius 7
 
-;      ifelse (any? players with [team-has-ball? = false] in-radius (distance ball-position) <= 5) [
-;        set defender-is-close? true
-;      ][
-;        set defender-is-close? false
-;      ]
+      if any? players-close [
+        ask basket-to-score [
+          let off-basket-dist distance myself
+          ask players-close [
+            if distance myself < off-basket-dist [ ; the defender is closer to the basket
+              set defender-is-close-temp? true
+            ]
+          ]
+        ]
+      ]
+      set defender-is-close? defender-is-close-temp?
 
       if spot != 0 [ ; if initialized
         if pxcor = item 0 spot and pycor = item 1 spot and getting-to-offensive-spot? [
@@ -186,14 +192,18 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
-      ;ifelse player-has-ball? and not empty? players-open [
-      ;  set intention "pass"
-      ;][
+      if player-has-ball? and defender-is-close? [
+        print "would like to pass"
+      ]
+      ifelse player-has-ball? and not empty? players-open and defender-is-close? [
+        print "someone close and can pass"
+        set intention "pass"
+      ][
       ifelse player-has-ball? [
         set intention "walk with ball"
       ][
       set intention "get open"
-      ]];]
+      ]]]
     ][
     if desire = "defend" [
       ifelse not got-back? [
@@ -261,6 +271,7 @@ to execute-actions
     ]
     if intention = "pass" [
       set target best-option
+      ;if target = 0 [ set target one-of open-teammates ]
       face target
       let xTarget 0
       let yTarget 0
@@ -268,7 +279,6 @@ to execute-actions
         set xTarget pxcor
         set yTarget pycor
       ]
-
       ask ball 11 [
         setxy xTarget yTarget
       ]
@@ -298,32 +308,40 @@ to execute-actions
     ]
   ]
 
-  ask player 3 [
+  ask players [
     ;print intention
     ;print desire
     if player-has-ball? [
       ;print intention
       ;print self
+      ask basket-to-score[
+      ;print distance myself
+      ]
     ]
   ]
 end
 
 to send-messages
   ask players [
-    if not team-has-ball? and defends-ball? [
+    if not team-has-ball? and defends-ball? [ ; communicate to others if you are defending the ball
       let send-to other players with [team = [team] of myself]
       ask send-to [
         set ball-is-defended? true ; communicate when the ball is defended (reverse is common knowledge)
       ]
+    ] ; communicate when in offense to the one with the ball that you are open when you have seen that you are open
+    if team-has-ball? and not defender-is-close? and not player-has-ball? [
+      let player-open-message self
+      let send-to players with [player-has-ball?]
+      ask send-to [
+        if not member? player-open-message players-open [
+          print "add info"
+          print player-open-message
+          set players-open lput player-open-message players-open
+        ]
+      ]
     ]
   ]
 end
-
-;to receive-messages
-;  ask players [
-;    if
-;  ]
-;end
 @#$#@#$#@
 GRAPHICS-WINDOW
 409
