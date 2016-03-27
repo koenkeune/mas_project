@@ -30,6 +30,7 @@ to go
   execute-actions
   send-messages
 
+  update-possessions
   set time time + 1
   tick
 end
@@ -58,6 +59,7 @@ to update-beliefs
       set loose-ball? false
       set player-has-ball? true
       ask ball 11 [
+        set prev-owner owner
         set owner myself
       ]
 
@@ -137,7 +139,6 @@ to update-beliefs
     ]
 
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
-      if team-has-ball? [ set team-had-ball? true ] ; make it one step behind
       set team-has-ball? true
       set getting-to-defensive-spot? false
       set got-back? false
@@ -166,7 +167,6 @@ to update-beliefs
         ]
       ]
     ][ ; defense stuff
-      if not team-has-ball? [ set team-had-ball? false ]
       set team-has-ball? false
       set getting-to-offensive-spot? false
       if spot != 0 [ ; if initialized
@@ -183,8 +183,6 @@ to update-beliefs
       ]
     ]
   ]
-  ;print "open teammates"
-  ;ask players with [player-has-ball?] [ print players-open ]
 end
 
 ; --- Update intentions ---
@@ -195,7 +193,6 @@ to update-intentions
   ; add desires to it
   ask players [
     ifelse desire = "get ball" [
-      ;ifelse closest-Laker = self or closest-Celtic = self [
       ifelse closest-to-ball = self [
         set intention "go to ball"
       ][
@@ -221,7 +218,6 @@ to update-intentions
       ifelse defends-ball? [
         set intention "defend ball"
       ][
-        ;print "defending"
         set intention "defending"
       ]]]
     ]]
@@ -288,9 +284,7 @@ to execute-actions
         set xTarget pxcor
         set yTarget pycor
       ]
-      ask ball 11 [
-        setxy xTarget yTarget
-      ]
+      pass-position xTarget yTarget 5
     ]
     if intention = "get open" [
       if not getting-to-offensive-spot? [ ; keep moving if it has arrived at the random spot

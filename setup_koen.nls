@@ -18,6 +18,9 @@ globals [
   target
   closest-to-ball
   speed-with-ball
+  possessions-lakers
+  possessions-celtics
+  passing-prob
 ]
 
 ; --- Agents ---
@@ -41,21 +44,18 @@ players-own[
   players-open
   best-option
   spot
-  spot-defense;;;;;;
   getting-to-offensive-spot?
   getting-to-defensive-spot?
   got-back?
-  ;change-of-possesion?
   defends-ball? ; true or false for one player of the team
   ball-is-defended? ; true or false for the whole team
   defender-is-close?
   received-messages
-  team-had-ball? ; to make sure that the team has the ball (in some cases it is behind one step)
 ]
 
 balls-own[
   owner
-  ball-passed?
+  prev-owner
 ]
 
 referees-own [
@@ -175,7 +175,6 @@ to setup-game
      facexy 0 0
      set size 5
      set team-has-ball? false
-     set team-had-ball? false
      set shooting-range 15 ; all have the same shooting range for now
      set in-shooting-range? false
      set players-open []
@@ -192,7 +191,7 @@ to setup-game
   ]
 
   create-referees 1 [
-    hide-turtle
+    hide-turtle ; to do the jump ball
   ]
 
   create-balls 1 [
@@ -200,8 +199,8 @@ to setup-game
     set color orange
     setxy 0 0
     set owner referee 10
+    set prev-owner referee 10
     set ball-position self
-    set ball-passed? false
   ]
 
   set points-lakers 0
@@ -221,6 +220,9 @@ to setup-parameters
   set loose-ball? true
   set vision-distance 50
   set speed-with-ball 0.8
+  set possessions-lakers 0
+  set possessions-celtics 0
+  set passing-prob .9
 end
 
 ; --- Setup ticks ---

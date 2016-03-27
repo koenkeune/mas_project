@@ -94,3 +94,34 @@ to-report paint-spot [team-player]
   
   report list x y
 end
+
+to update-possessions
+  ask ball 11 [
+    if ([team] of ([owner] of ball 11) = "lakers") and ([team] of ([prev-owner] of ball 11) != "lakers")[
+      set possessions-lakers possessions-lakers + 1
+    ]
+    if ([team] of ([owner] of ball 11) = "celtics") and ([team] of ([prev-owner] of ball 11) != "celtics")[
+      set possessions-celtics possessions-celtics + 1
+    ]
+  ]
+end
+
+to pass-position [x y dist]
+  ask ball 11 [
+;    ifelse random-float 1 < passing-prob [
+;      setxy x y
+;    ][
+      set loose-ball? true
+      set x random-float dist
+      set y random-float dist
+      if random 2 = 1 [
+        set x -1 * x
+      ]
+      if random 2 = 1 [
+        set y -1 * y 
+      ]
+      
+      setxy x y
+;    ]
+  ]
+end
