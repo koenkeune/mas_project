@@ -86,7 +86,6 @@ end
 to-report paint-spot [team-player]
   let x 0
   let y 0
-  
   ifelse team-player = "lakers" [
     set x -1 * height + 15
   ][

@@ -50,7 +50,6 @@ end
 ; player has ball
 to update-beliefs
   ask ball 11 [
-    ;set closest-celtic min-one-of (players with [team = "celtics"]) [distance myself]
     set closest-to-ball min-one-of players [distance myself]
   ]
 
@@ -101,6 +100,8 @@ to update-beliefs
       set received-messages []
 
       set players-open players-open-temp ; temp is used because it is in a different turtle scope
+
+
 
       if not empty? players-open-temp [ ; determine the best option by looking at the closest teammate to the basket
         let best-option-temp1 item 0 players-open-temp
@@ -182,6 +183,8 @@ to update-beliefs
       ]
     ]
   ]
+  ;print "open teammates"
+  ;ask players with [player-has-ball?] [ print players-open ]
 end
 
 ; --- Update intentions ---
@@ -202,11 +205,7 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
-      if player-has-ball? and defender-is-close? [
-        print "would like to pass"
-      ]
       ifelse player-has-ball? and not empty? players-open and defender-is-close? [
-        print "someone close and can pass"
         set intention "pass"
       ][
       ifelse player-has-ball? [
@@ -317,18 +316,6 @@ to execute-actions
       fd 1
     ]
   ]
-
-  ask players [
-    ;print intention
-    ;print desire
-    if player-has-ball? [
-      ;print intention
-      ;print self
-      ask basket-to-score[
-      ;print distance myself
-      ]
-    ]
-  ]
 end
 
 to send-messages
@@ -343,7 +330,7 @@ to send-messages
       let player-open-message self
       let send-to players with [player-has-ball?]
       ask send-to [
-        set received-messages lput player-open-message players-open
+        set received-messages lput player-open-message received-messages
       ]
     ]
   ]
