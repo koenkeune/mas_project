@@ -21,6 +21,8 @@ globals [
   possessions-lakers
   possessions-celtics
   passing-prob
+  teamplayers-celtics?
+  teamplayers-lakers?
 ]
 
 ; --- Agents ---
@@ -52,6 +54,7 @@ players-own[
   defender-is-close?
   dist-closest-defender
   received-messages
+  teamplayer?
 ]
 
 balls-own[
@@ -150,7 +153,7 @@ to setup-game
     set color green
     set basket-to-score basket2-pos
     set place-to-inbound inbound1
-    ;set basket-to-defend basket1-pos
+    set teamplayer? teamplayers-celtics?
   ]
 
   create-players 5 [
@@ -158,9 +161,11 @@ to setup-game
     set color yellow
     set basket-to-score basket1-pos
     set place-to-inbound inbound2
-    ;set basket-to-defend basket2-pos
+    set teamplayer? teamplayers-lakers?
   ]
 
+  print teamplayers-celtics?
+  print teamplayers-lakers?
   pos-player 0 2 0
   pos-player 1 5 -5
   pos-player 2 5 5
@@ -181,9 +186,7 @@ to setup-game
      set players-open []
      set getting-to-offensive-spot? false
      set getting-to-defensive-spot? false
-     ;set spot [0 0]
      set got-back? false
-     ;set change-of-possesion? false
      set player-has-ball? false
      set defends-ball? false
      set ball-is-defended? false
@@ -192,7 +195,7 @@ to setup-game
   ]
 
   create-referees 1 [
-    hide-turtle ; to do the jump ball
+    hide-turtle ; to perform the jump ball
   ]
 
   create-balls 1 [

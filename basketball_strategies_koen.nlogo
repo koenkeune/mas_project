@@ -215,6 +215,9 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
+      ifelse player-has-ball? and not empty? players-open and teamplayer? = 1 [;defender-is-close? [
+        set intention "pass"
+      ][
       ifelse player-has-ball? and not empty? players-open and defender-is-close? [
         set intention "pass"
       ][
@@ -222,7 +225,7 @@ to update-intentions
         set intention "walk with ball"
       ][
       set intention "get open"
-      ]]]
+      ]]]]
     ][
     if desire = "defend" [
       ifelse not got-back? [
@@ -371,10 +374,10 @@ ticks
 30.0
 
 BUTTON
-146
-34
-209
-67
+68
+20
+131
+53
 NIL
 setup
 NIL
@@ -388,10 +391,10 @@ NIL
 1
 
 BUTTON
+20
+65
+83
 98
-79
-161
-112
 NIL
 go
 T
@@ -405,10 +408,10 @@ NIL
 1
 
 BUTTON
-215
-84
-278
-117
+137
+70
+200
+103
 NIL
 go\n
 NIL
@@ -422,10 +425,10 @@ NIL
 1
 
 MONITOR
-53
-145
-139
-190
+13
+118
+99
+163
 Points Lakers
 points-lakers
 17
@@ -433,10 +436,10 @@ points-lakers
 11
 
 MONITOR
-200
-148
-286
-193
+129
+123
+215
+168
 Points Celtics
 points-celtics
 17
@@ -444,10 +447,10 @@ points-celtics
 11
 
 MONITOR
-40
-292
-151
-337
+20
+298
+131
+343
 Desire of player 1
 [desire] of player 1
 17
@@ -455,10 +458,10 @@ Desire of player 1
 11
 
 MONITOR
-211
-288
-322
-333
+174
+299
+285
+344
 Desire of player 6
 [desire] of player 6
 17
@@ -466,10 +469,10 @@ Desire of player 6
 11
 
 MONITOR
-27
-360
-154
-405
+12
+356
+139
+401
 Intention of player 1
 [intention] of player 1
 17
@@ -477,10 +480,10 @@ Intention of player 1
 11
 
 MONITOR
-203
-359
-330
-404
+167
+356
+294
+401
 Intention of player 6
 [intention] of player 6
 17
@@ -488,26 +491,48 @@ Intention of player 6
 11
 
 MONITOR
-35
-221
-147
-266
-Beliefs of player 1
-[closest-to-ball] of player 1
+13
+183
+230
+228
+Beliefs of player 1 about who is open
+[players-open] of player 1
 17
 1
 11
 
 MONITOR
-207
-218
-319
-263
-Beliefs of player 6
-[team-has-ball?] of player 6
+13
+240
+230
+285
+Beliefs of player 6 about who is open
+[players-open] of player 6
 17
 1
 11
+
+SWITCH
+208
+417
+373
+450
+teamplayers-lakers
+teamplayers-lakers
+0
+1
+-1000
+
+SWITCH
+21
+416
+187
+449
+teamplayers-celtics
+teamplayers-celtics
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
