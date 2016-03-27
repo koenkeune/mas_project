@@ -1,51 +1,10 @@
 ; UVA/VU - Multi-Agent Systems
 ; Koen Keune & Marysia Winkels
+;
+; Running the code will result in a print of the current settings with the score for
+; each team after the specified number of possessions
 
-__includes["setup.nls"]
-
-; --- Global variables ---
-globals [
-  width         ; width of the court
-  height        ; height of the court
-  time
-  points-lakers
-  points-celtics
-  ball-position
-  distance-for-possesion
-  basket1-pos
-  basket2-pos
-  ;speed
-  ;distance-to-basket
-]
-
-; --- Agents ---
-breed [players player]
-breed [balls ball]
-breed [referees referee]
-
-; --- Local variables ---
-; beliefs are: ball, team-has-ball, team, basket-to-score, if the player self has the ball
-players-own[
-  desire
-  intention
-  team
-  basket-to-score
-  basket-to-defend
-  player-has-ball?
-  team-has-ball?
-  is-open?
-  shooting-range
-  in-shooting-range?
-  loose-ball?
-]
-
-balls-own[
-  owner
-]
-
-referees-own [
-  team
-]
+__includes["setup.nls" "general_functions.nls"]
 
 ; --- Setup ---
 to setup
@@ -58,185 +17,387 @@ end
 
 ; --- Main processing cycle ---
 to go
-  if time = 0 [random-bounce 15]
-  ;if time = 100 [ stop ]
-  update-beliefs
+  if time = 0 [jump-ball 15]
+  if shot-made != "false" [
+    inbound shot-made
+    set shot-made "false"
+    ]
+  if shot-missed != "false" [
+    bounce-off-rim shot-missed 15
+    set shot-missed "false"
+  ]
+
+  update-beliefs ; desires need up-to-date beliefs
   update-desires
   update-intentions
   execute-actions
-  ;send-messages
+  send-messages
 
+  update-possessions
   set time time + 1
+
+  ; print when done
+  if possessions-lakers >= number-of-possesions and possessions-celtics >= number-of-possesions [
+    print "time passed:"
+    print time
+    print "lakers: "
+    print "teamplayer:"
+    print teamplayers-lakers?
+    print "zone-defense:"
+    print zone-defense-lakers?
+    print "points: "
+    print points-lakers
+
+    print "celtics"
+    print "teamplayer:"
+    print teamplayers-celtics?
+    print "zone-defense:"
+    print zone-defense-celtics?
+    print "points: "
+    print points-celtics
+
+    stop
+  ]
+
   tick
-
-end
-
-to-report referee-owns-ball
-  let owns False
-  ask referees [ if ([team] of ([owner] of ball 11) = [team] of self) [ set owns True ] ]
-  report owns
 end
 
 ; --- Update desires ---
 to update-desires
   ask players [
-    ifelse referee-owns-ball
-    [ set desire "get-ball" ]
-    [ ifelse team-has-ball? [ set desire "score" ] [ set desire "defend" ] ]
+    ifelse loose-ball? [ set desire "get ball" ]
+    [
+      ifelse team-has-ball? [ set desire "score" ]
+      [ set desire "defend" ]
+    ]
   ]
 end
 
 ; --- Update beliefs ---
-; team has ball
-; player has ball
+; first if: player has ball
+; second if: team has ball
+; else: team doesnt has the ball
 to update-beliefs
-  ask ball 11 [ set owner referee 10 ]
-  ask players [
-    ifelse (distance ball-position) < distance-for-possesion [
-      set player-has-ball? true
-      ask ball 11 [set owner myself]
-      ;if any? patches in-radius shooting-range with basket-to-score [
-      ;  set in-shooting-range? true
-      ;]
-      ;any? patches in-radius shoot-distance-selfish with [pcolor = [color] of myself - 2] and not teamplayer?
-    ][ set player-has-ball? false ]
+  ask ball 11 [
+    set closest-to-ball min-one-of players [distance myself]
   ]
 
   ask players [
+    ifelse (closest-to-ball = self) and (distance ball-position < distance-for-possession) [ ; this player has the ball
+      set loose-ball? false
+      set player-has-ball? true
+      ask ball 11 [
+        set prev-owner owner
+        set owner myself
+      ]
+
+      let distance-to-basket 0
+      ask basket-to-score [
+        set distance-to-basket distance myself
+      ]
+
+      ; ******** beginning of open teammate stuff ********
+      let players-own-team other (players in-cone vision-distance 160) with [team = [team] of myself] ; all players of own team in vision cone
+      let players-other-team other (players in-cone vision-distance 160) with [team != [team] of myself] ; all player of other team in vision cone
+      let players-open-temp []
+
+      ask players-own-team [
+        let open true
+        let dist-ball-teammate distance myself ; distance of player with ball to player-own-team
+
+        ask players-other-team [
+          let dist-ball-opponent 0
+          let dist-teammate-opponent distance myself ; distance of teammate to opponent
+
+          ask players with [player-has-ball? = true] [
+            set dist-ball-opponent distance myself
+          ]
+          if not (dist-ball-teammate < dist-teammate-opponent or dist-ball-teammate < dist-ball-opponent) [ ; third option could be added if it doesnt work
+            set open false
+          ]
+        ]
+        if open [
+          set players-open-temp lput self players-open-temp
+        ]
+      ]
+      let counter 0
+      repeat length received-messages [
+        if not member? item counter received-messages players-open-temp [
+          set players-open-temp lput item counter received-messages players-open-temp
+        ]
+        set counter counter + 1
+      ]
+      set received-messages []
+
+      set players-open players-open-temp ; temp is used because it is in a different turtle scope
+
+      if not empty? players-open-temp [ ; determine the best option by looking at the closest teammate to the basket
+        let best-option-temp1 item 0 players-open-temp
+        ask basket-to-score [
+          if length players-open-temp > 1 [
+
+            let distance-to-score1 distance item 0 players-open-temp ; should probably use ask turtles
+            let counter2 1 ; skip the first one
+            repeat length players-open-temp - 1 [
+              ask item counter2 players-open-temp [
+                let best-option-temp2 self
+                let distance-to-score2 distance myself
+                if distance-to-score2 < distance-to-score1 [
+                  set best-option-temp1 best-option-temp2
+                  set distance-to-score1 distance-to-score2
+                ]
+              ]
+              set counter2 counter2 + 1
+            ]
+          ]
+        ]
+        set best-option best-option-temp1
+      ]
+      ; ******** end of open teammate stuff ********
+
+      ifelse distance-to-basket < shooting-range [ set in-shooting-range? true ][
+        set in-shooting-range? false
+      ]
+
+    ][
+      set player-has-ball? false
+    ]
+
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
       set team-has-ball? true
-    ][ set team-has-ball? false ]
-  ]
+      set getting-to-defensive-spot? false
+      set got-back? false
+      set ball-is-defended? false
+      set defends-ball? false
 
-  ask players [
-    if team-has-ball? and not player-has-ball? [
-      ifelse (any? other players with [player-has-ball? = false] in-cone (distance ball 11) 20) or (any? other players with [player-has-ball? = false] in-radius 1.5)
-      [ set is-open? true ] [ set is-open? false ]
+      let defender-is-close-temp? false
+      let dist distance ball-position
+      let players-close other players with [team-has-ball? = false] in-radius 7 ; distance of 7 for a defender close
+
+      let off-basket-dist 0
+      if any? players-close [
+        ask basket-to-score [
+          set off-basket-dist distance myself
+          ask players-close [
+            if distance myself < off-basket-dist [ ; the defender is closer to the basket
+              set defender-is-close-temp? true
+            ]
+          ]
+        ]
+      ]
+      set defender-is-close? defender-is-close-temp?
+
+      let basket basket-to-score
+      let dist-temp1 5 ; maximal distance
+      ask players-close [
+        let dist-temp2 distance myself
+        ask basket [
+          if distance myself < off-basket-dist and dist-temp2 < dist-temp1 [
+            set dist-temp1 dist-temp2
+          ]
+        ]
+      ]
+      set dist-closest-defender dist-temp1
+
+      if spot != 0 [ ; if initialized
+        if pxcor = item 0 spot and pycor = item 1 spot and getting-to-offensive-spot? [
+          set getting-to-offensive-spot? false
+        ]
+      ]
+    ][ ; defense stuff
+      set team-has-ball? false
+      set getting-to-offensive-spot? false
+      set closest-player min-one-of players with [team != [team] of myself] [distance myself]
+
+      let zone-to-defend-temp zone-to-defend
+      let otherPlayers players with [team != [team] of myself]; and member? patch-here zone-to-defend]
+      let players-in-zone []
+      let closest-player-in-zone-temp 0
+      let dist-temp 100
+      ask otherPlayers [
+        if member? patch-here zone-to-defend-temp [
+            set players-in-zone lput self players-in-zone
+            let dist-temp2 distance myself
+
+            if distance myself < dist-temp [
+              set dist-temp distance myself
+              set closest-player-in-zone-temp self
+            ]
+          ]
+      ]
+      set closest-player-in-zone closest-player-in-zone-temp
+
+      if spot != 0 [ ; if initialized
+        if pxcor = item 0 spot and pycor = item 1 spot and not got-back? [
+          set got-back? true
+        ]
+        if pxcor = item 0 spot and pycor = item 1 spot and getting-to-defensive-spot? [
+          set getting-to-defensive-spot? false
+        ]
+      ]
+      if got-back? and not ball-is-defended? [
+        set defends-ball? true
+        set ball-is-defended? true ; send-message makes the other players know it
+      ]
+
     ]
   ]
-
-end
-
-to-report is-nearest [ obj agent]
-  let agentset 0
-  let nearest agent
-
-  ; create the agentset
-  ask agent [ ifelse [team] of self = "lakers"
-    [ set agentset (players with [team = "lakers"]) ]
-    [ set agentset (players with [team = "celtics"]) ]
-  ]
-  ; find nearest agent from set
-  ask obj [ set nearest (min-one-of agentset [distance myself]) ]
-  ; report back
-  ifelse nearest = agent [ report True ] [ report False ]
 end
 
 ; --- Update intentions ---
-; shoot
-; pass
-; walk
 to update-intentions
-  ; add desires to it
   ask players [
-    if desire = "get-ball"
-    [ ; if nearest to ball: move-towards-ball, else: move-random
-      ifelse is-nearest ball 11 self
-      [ set intention "move-towards-ball" ] [ set intention "move-random" ]
-      ]
-    if desire = "defend"
-    [ ; if nearest to ball, defend ball, else: defend player
-      ifelse is-nearest ball 11 self
-      [ set intention "move-towards-ball" ] [ set intention "defend-player" ]
-    ]
-    if desire = "score" [
-     ifelse player-has-ball?
-     [ ; shoot or move or pass -> should improve.
-       ifelse in-shooting-range self [ set intention "shoot" ]
-       [ set intention "move-ball" ]
-        ]
-    [ set intention "open-position" ]
-    ]
-
-
+    ifelse desire = "get ball" [
+      ifelse closest-to-ball = self [
+        set intention "go to ball"
+      ][
+        set intention "no intention"]
+    ][
+    ifelse desire = "score" [
+      ifelse player-has-ball? and in-shooting-range? [
+        set intention "shoot"
+      ][
+      ifelse player-has-ball? and not empty? players-open and teamplayer? and random-float 1 < 1 - pass-percentage [
+        set intention "pass"
+      ][
+      ifelse player-has-ball? and not empty? players-open and defender-is-close? [
+        set intention "pass"
+      ][
+      ifelse player-has-ball? [
+        set intention "walk with ball"
+      ][
+      set intention "get open"
+      ]]]]
+    ][
+    if desire = "defend" [
+      ifelse not got-back? [
+        set intention "get back"
+      ][
+      ifelse zone-defense? and closest-player-in-zone != 0 [
+        set intention "defend player in zone"
+      ][
+      ifelse zone-defense? [
+        set intention "go to zone"
+      ][
+      ifelse defends-ball? [
+        set intention "defend ball"
+      ][
+        set intention "defend man"
+      ]]]]]
+    ]]
   ]
-end
-
-to-report nearest-opponent [ player ]
-  let agentset 0
-  let nearest player
-  ask player [ ifelse [team] of self = "celtics"
-    [ set agentset (players with [team = "lakers"  and not player-has-ball? ] ) ]
-    [ set agentset (players with [team = "celtics"  and not player-has-ball?]) ]
-  ]
-  ask player [ set nearest (min-one-of agentset [distance myself]) ]
-  report nearest
-end
-
-to-report in-shooting-range [agent]
-  let can-shoot false
-  ask agent [ if distance one-of basket-to-score < shooting-range [ set can-shoot true ] ]
-  report can-shoot
-end
-
-to-report clear-line [agent1 agent2]
-  ; to add
-  report true
-end
-
-to-report can-move [agent]
-  let allowed true
-  ask agent [
-    if distance min-one-of other players [distance patch-ahead 1] < 1 [ set allowed false print "cannot move"]
-  ]
-  report allowed
 end
 
 ; --- Execute actions ---
 to execute-actions
   ask players [
-    ; still add the if can-move [ fd 1 ]
-    if intention = "move-towards-ball" [
-      ; get position of ball, head to that location.
-      face ball 11
-    ]
-
-    if intention = "move-random" [
-      ifelse random-float 1 < .5 [ face one-of basket-to-score ] [ face one-of basket-to-defend ]
-    ]
-
-    if intention = "defend-player" [
-      ; get nearest defendable player
-      let defended nearest-opponent self
-      face defended
-      ask defended [ set is-open? false ]
-    ]
-
-    if intention = "move-ball" [
+    if intention = "walk with ball" [
       face one-of basket-to-score
+      fd speed-with-ball
       ask ball 11 [
         set heading ([heading] of owner) ; make it go the same direction
         setxy ([xcor] of myself) ([ycor] of myself)
+        fd 1
       ]
     ]
-
-    if intention = "open-position" [
-      if not is-open? [ set heading heading + 30 ]
-    ]
-
     if intention = "shoot" [
-        face one-of basket-to-score
-        ;setxy basket-to-score
-        let dist distance one-of basket-to-score
-        ask ball 11 [
-        fd dist ]
+      let xBasket 0
+      let yBasket 0
+      let distance-to-basket 0
+      let range shooting-range
+      let teamTemp team
+      let dist-defender dist-closest-defender
 
+      ask basket-to-score [
+        set xBasket pxcor
+        set yBasket pycor
+        set distance-to-basket distance myself
+      ]
+
+      ask ball 11 [
+        setxy xBasket yBasket
+
+        ifelse random-float 1 < probability-score range distance-to-basket dist-defender 5 [
+          set shot-made teamTemp
+          ; no 3-pointers yet
+          ifelse teamTemp = "lakers" [
+            set points-lakers points-lakers + 2
+          ][
+            set points-celtics points-celtics + 2
+          ]
+        ][
+          set shot-missed teamTemp
+          set loose-ball? true
+        ]
+      ]
+    ]
     if intention = "no intention"[
       left random 360
+      fd 1
     ]
-
-    if can-move self [ fd 1 ]
+    if intention = "go to ball" [
+      face ball 11
+      fd 1
+    ]
+    if intention = "pass" [
+      set target best-option
+      face target
+      let xTarget 0
+      let yTarget 0
+      ask target [
+        set xTarget pxcor
+        set yTarget pycor
+      ]
+      pass-position xTarget yTarget 5
+    ]
+    if intention = "get open" [
+      if not getting-to-offensive-spot? [ ; keep moving if it has arrived at the random spot
+        set spot offense-spot team
+        set getting-to-offensive-spot? true
+      ]
+      facexy item 0 spot item 1 spot
+      fd 1
+    ]
+    if intention = "get back" [
+      set spot paint-spot team
+      set getting-to-defensive-spot? true
+      facexy item 0 spot item 1 spot
+      fd 1
+    ]
+    if intention = "defend ball" [
+      face ball-position
+      fd 1
+    ]
+    if intention = "defend man" [
+      face closest-player
+      fd 1
+    ]
+    if intention = "defend player in zone" [
+      face closest-player-in-zone
+      fd 1
+    ]
+    if intention = "go to zone" [
+      face min-one-of zone-to-defend [distance myself]
+      fd 1
+    ]
   ]
+end
+
+to send-messages
+  ask players [
+    if not team-has-ball? and defends-ball? [ ; communicate to others if you are defending the ball
+      let send-to other players with [team = [team] of myself]
+      ask send-to [
+        set ball-is-defended? true ; communicate when the ball is defended (reverse is common knowledge)
+      ]
+    ] ; communicate when in offense to the one with the ball that you are open when you have seen that you are open
+    if team-has-ball? and not defender-is-close? and not player-has-ball? [
+      let player-open-message self
+      let send-to players with [player-has-ball?]
+      ask send-to [
+        set received-messages lput player-open-message received-messages
+      ]
+    ]
   ]
 end
 @#$#@#$#@
@@ -268,10 +429,10 @@ ticks
 30.0
 
 BUTTON
-146
-34
-209
-67
+68
+20
+131
+53
 NIL
 setup
 NIL
@@ -285,10 +446,10 @@ NIL
 1
 
 BUTTON
+20
+65
+83
 98
-79
-161
-112
 NIL
 go
 T
@@ -302,10 +463,10 @@ NIL
 1
 
 BUTTON
-215
-83
-278
-116
+137
+70
+200
+103
 NIL
 go\n
 NIL
@@ -319,10 +480,10 @@ NIL
 1
 
 MONITOR
-53
-145
-139
-190
+13
+118
+99
+163
 Points Lakers
 points-lakers
 17
@@ -330,10 +491,10 @@ points-lakers
 11
 
 MONITOR
-200
-148
-286
-193
+129
+123
+215
+168
 Points Celtics
 points-celtics
 17
@@ -341,10 +502,10 @@ points-celtics
 11
 
 MONITOR
-40
-292
-151
-337
+20
+252
+131
+297
 Desire of player 1
 [desire] of player 1
 17
@@ -352,10 +513,10 @@ Desire of player 1
 11
 
 MONITOR
-211
-288
-322
-333
+174
+253
+285
+298
 Desire of player 6
 [desire] of player 6
 17
@@ -363,10 +524,10 @@ Desire of player 6
 11
 
 MONITOR
-27
-360
-154
-405
+12
+310
+139
+355
 Intention of player 1
 [intention] of player 1
 17
@@ -374,10 +535,10 @@ Intention of player 1
 11
 
 MONITOR
-203
-359
-330
-404
+167
+310
+294
+355
 Intention of player 6
 [intention] of player 6
 17
@@ -385,26 +546,85 @@ Intention of player 6
 11
 
 MONITOR
-35
-221
-147
-266
-Beliefs of player 1
-[player-has-ball?] of player 1
+13
+183
+312
+228
+Beliefs of the player with the ball about who is open
+[players-open] of players with [player-has-ball?]
 17
 1
 11
 
-MONITOR
-207
-218
-319
-263
-Beliefs of player 6
-[player-has-ball?] of player 6
-17
+SWITCH
+208
+371
+374
+404
+teamplayers-lakers?
+teamplayers-lakers?
+0
 1
-11
+-1000
+
+SWITCH
+21
+370
+188
+403
+teamplayers-celtics?
+teamplayers-celtics?
+0
+1
+-1000
+
+SLIDER
+17
+466
+189
+499
+pass-percentage
+pass-percentage
+0
+1
+0.9
+.05
+1
+NIL
+HORIZONTAL
+
+SWITCH
+18
+416
+192
+449
+zone-defense-lakers?
+zone-defense-lakers?
+1
+1
+-1000
+
+SWITCH
+215
+420
+390
+453
+zone-defense-celtics?
+zone-defense-celtics?
+1
+1
+-1000
+
+INPUTBOX
+231
+25
+386
+85
+number-of-possesions
+1000
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
