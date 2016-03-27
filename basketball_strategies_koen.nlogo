@@ -32,6 +32,32 @@ to go
 
   update-possessions
   set time time + 1
+
+  if possessions-lakers = number-of-possesions [
+    print "lakers: "
+    print "teamplayer:"
+    print teamplayers-lakers?
+    print "zone-defense:"
+    print zone-defense-lakers?
+    print "points: "
+    print points-lakers
+  ]
+  if possessions-celtics = number-of-possesions [
+    print "celtics"
+    print "teamplayer:"
+    print teamplayers-celtics?
+    print "zone-defense:"
+    print zone-defense-celtics?
+    print "points: "
+    print points-celtics
+  ]
+  if possessions-lakers >= number-of-possesions and possessions-celtics >= number-of-possesions [
+    print "time passed:"
+    print time
+    stop
+  ]
+
+
   tick
 end
 
@@ -199,10 +225,6 @@ to update-beliefs
           ]
       ]
       set closest-player-in-zone closest-player-in-zone-temp
-;      if closest-player-in-zone != 0 [
-;        print self
-;        print closest-player-in-zone
-;      ]
 
       if spot != 0 [ ; if initialized
         if pxcor = item 0 spot and pycor = item 1 spot and not got-back? [
@@ -247,21 +269,20 @@ to update-intentions
       ]]]]
     ][
     if desire = "defend" [
-
-;      let pos-closest-player 0
-;      ask closest-player [ set pos-closest-player patch-here ]
-;      if member? pos-closest-player zone-to-defend [
-;        print "yes"
-;      ]
-
       ifelse not got-back? [
         set intention "get back"
+      ][
+      ifelse zone-defense? and closest-player-in-zone != 0 [
+        set intention "defend player in zone"
+      ][
+      ifelse zone-defense? [
+        set intention "go to zone"
       ][
       ifelse defends-ball? [
         set intention "defend ball"
       ][
         set intention "defend man"
-      ]]]
+      ]]]]]
     ]]
   ]
 end
@@ -346,22 +367,16 @@ to execute-actions
       face ball-position
       fd 1
     ]
-
     if intention = "defend man" [
       face closest-player
       fd 1
     ]
-
-    if intention = "defend zone" [
-      let pos-closest-player 0
-      ask closest-player [ set pos-closest-player patch-here ]
-      print pos-closest-player
-
-      ;if closest-player with patch
+    if intention = "defend player in zone" [
+      face closest-player-in-zone
+      fd 1
     ]
-
-    if intention = "defending" [
-      left random 360
+    if intention = "go to zone" [
+      face min-one-of zone-to-defend [distance myself]
       fd 1
     ]
   ]
@@ -584,7 +599,7 @@ SWITCH
 449
 zone-defense-lakers?
 zone-defense-lakers?
-1
+0
 1
 -1000
 
@@ -595,9 +610,20 @@ SWITCH
 453
 zone-defense-celtics?
 zone-defense-celtics?
-1
+0
 1
 -1000
+
+INPUTBOX
+231
+25
+386
+85
+number-of-possesions
+1000
+1
+0
+Number
 
 @#$#@#$#@
 ## WHAT IS IT?
