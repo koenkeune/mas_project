@@ -50,6 +50,7 @@ players-own[
   defends-ball? ; true or false for one player of the team
   ball-is-defended? ; true or false for the whole team
   defender-is-close?
+  dist-closest-defender
   received-messages
 ]
 
@@ -175,7 +176,7 @@ to setup-game
      facexy 0 0
      set size 5
      set team-has-ball? false
-     set shooting-range 15 ; all have the same shooting range for now
+     set shooting-range 20 ; all have the same shooting range now
      set in-shooting-range? false
      set players-open []
      set getting-to-offensive-spot? false

@@ -147,11 +147,12 @@ to update-beliefs
 
       let defender-is-close-temp? false
       let dist distance ball-position
-      let players-close other players with [team-has-ball? = false] in-radius 7
+      let players-close other players with [team-has-ball? = false] in-radius 7 ; distance of 7 for a defender close
 
+      let off-basket-dist 0
       if any? players-close [
         ask basket-to-score [
-          let off-basket-dist distance myself
+          set off-basket-dist distance myself
           ask players-close [
             if distance myself < off-basket-dist [ ; the defender is closer to the basket
               set defender-is-close-temp? true
@@ -160,6 +161,18 @@ to update-beliefs
         ]
       ]
       set defender-is-close? defender-is-close-temp?
+
+      let basket basket-to-score
+      let dist-temp1 5 ; maximal distance
+      ask players-close [
+        let dist-temp2 distance myself
+        ask basket [
+          if distance myself < off-basket-dist and dist-temp2 < dist-temp1 [
+            set dist-temp1 dist-temp2
+          ]
+        ]
+      ]
+      set dist-closest-defender dist-temp1
 
       if spot != 0 [ ; if initialized
         if pxcor = item 0 spot and pycor = item 1 spot and getting-to-offensive-spot? [
@@ -242,6 +255,7 @@ to execute-actions
       let distance-to-basket 0
       let range shooting-range
       let teamTemp team
+      let dist-defender dist-closest-defender
 
       ask basket-to-score [
         set xBasket pxcor
@@ -252,7 +266,7 @@ to execute-actions
       ask ball 11 [
         setxy xBasket yBasket
 
-        ifelse random-float 1 < probability-score range distance-to-basket [
+        ifelse random-float 1 < probability-score range distance-to-basket dist-defender 5 [
           set shot-made teamTemp
           ; no 3-pointers yet
           ifelse teamTemp = "lakers" [
@@ -276,7 +290,6 @@ to execute-actions
     ]
     if intention = "pass" [
       set target best-option
-      ;if target = 0 [ set target one-of open-teammates ]
       face target
       let xTarget 0
       let yTarget 0

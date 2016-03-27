@@ -1,9 +1,14 @@
 ; probability that the ball goes in is a function of the player's range and the distance to the basket
 ; relative distance makes the function better scale on the range of a player
 ; maximal range without defense gives a percentage of .43
-to-report probability-score [range dist] 
+to-report probability-score [range dist defender-dist max-dist] 
   let relative-distance (dist / range) * 2
-  report (relative-distance + 0.98) / (relative-distance ^ 2 + relative-distance + 1)
+  let relative-distance2 defender-dist / max-dist
+  if defender-dist > max-dist [
+    set relative-distance2 max-dist
+  ]
+  let penalty -1 * relative-distance2 ^ 2 + 1
+  report ((relative-distance + 0.98) / (relative-distance ^ 2 + relative-distance + 1) / (penalty + 1))
 end
 
 to jump-ball [max-dist]
@@ -108,9 +113,9 @@ end
 
 to pass-position [x y dist]
   ask ball 11 [
-;    ifelse random-float 1 < passing-prob [
-;      setxy x y
-;    ][
+    ifelse random-float 1 < passing-prob [
+      setxy x y
+    ][
       set loose-ball? true
       set x random-float dist
       set y random-float dist
@@ -122,6 +127,6 @@ to pass-position [x y dist]
       ]
       
       setxy x y
-;    ]
+    ]
   ]
 end
