@@ -25,11 +25,10 @@ to go
   ]
 
   update-beliefs ; desires need up-to-date beliefs
-  send-messages  ; updates the beliefs
   update-desires
   update-intentions
   execute-actions
-
+  send-messages
 
   set time time + 1
   tick
@@ -92,6 +91,15 @@ to update-beliefs
           set players-open-temp lput self players-open-temp
         ]
       ]
+      let counter 0
+      repeat length received-messages [
+        if not member? item counter received-messages players-open-temp [
+          set players-open-temp lput item counter received-messages players-open-temp
+        ]
+        set counter counter + 1
+      ]
+      set received-messages []
+
       set players-open players-open-temp ; temp is used because it is in a different turtle scope
 
       if not empty? players-open-temp [ ; determine the best option by looking at the closest teammate to the basket
@@ -100,9 +108,9 @@ to update-beliefs
           if length players-open-temp > 1 [
 
             let distance-to-score1 distance item 0 players-open-temp ; should probably use ask turtles
-            let counter 1 ; skip the first one
+            let counter2 1 ; skip the first one
             repeat length players-open-temp - 1 [
-              ask item counter players-open-temp [
+              ask item counter2 players-open-temp [
                 let best-option-temp2 self
                 let distance-to-score2 distance myself
                 if distance-to-score2 < distance-to-score1 [
@@ -110,7 +118,7 @@ to update-beliefs
                   set distance-to-score1 distance-to-score2
                 ]
               ]
-              set counter counter + 1
+              set counter2 counter2 + 1
 
             ]
           ]
@@ -128,6 +136,7 @@ to update-beliefs
     ]
 
     ifelse ([team] of ([owner] of ball 11) = [team] of self) [
+      if team-has-ball? [ set team-had-ball? true ] ; make it one step behind
       set team-has-ball? true
       set getting-to-defensive-spot? false
       set got-back? false
@@ -156,6 +165,7 @@ to update-beliefs
         ]
       ]
     ][ ; defense stuff
+      if not team-has-ball? [ set team-had-ball? false ]
       set team-has-ball? false
       set getting-to-offensive-spot? false
       if spot != 0 [ ; if initialized
@@ -333,11 +343,7 @@ to send-messages
       let player-open-message self
       let send-to players with [player-has-ball?]
       ask send-to [
-        if not member? player-open-message players-open [
-          print "add info"
-          print player-open-message
-          set players-open lput player-open-message players-open
-        ]
+        set received-messages lput player-open-message players-open
       ]
     ]
   ]

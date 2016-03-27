@@ -49,6 +49,8 @@ players-own[
   defends-ball? ; true or false for one player of the team
   ball-is-defended? ; true or false for the whole team
   defender-is-close?
+  received-messages
+  team-had-ball? ; to make sure that the team has the ball (in some cases it is behind one step)
 ]
 
 balls-own[
@@ -173,6 +175,7 @@ to setup-game
      facexy 0 0
      set size 5
      set team-has-ball? false
+     set team-had-ball? false
      set shooting-range 15 ; all have the same shooting range for now
      set in-shooting-range? false
      set players-open []
@@ -185,6 +188,7 @@ to setup-game
      set defends-ball? false
      set ball-is-defended? false
      set defender-is-close? false
+     set received-messages []
   ]
 
   create-referees 1 [
