@@ -47,8 +47,9 @@ to update-desires
 end
 
 ; --- Update beliefs ---
-; team has ball
-; player has ball
+; first if: player has ball
+; second if: team has ball
+; else: team doesnt has the ball
 to update-beliefs
   ask ball 11 [
     set closest-to-ball min-one-of players [distance myself]
@@ -103,8 +104,6 @@ to update-beliefs
 
       set players-open players-open-temp ; temp is used because it is in a different turtle scope
 
-
-
       if not empty? players-open-temp [ ; determine the best option by looking at the closest teammate to the basket
         let best-option-temp1 item 0 players-open-temp
         ask basket-to-score [
@@ -122,7 +121,6 @@ to update-beliefs
                 ]
               ]
               set counter2 counter2 + 1
-
             ]
           ]
         ]
@@ -182,6 +180,30 @@ to update-beliefs
     ][ ; defense stuff
       set team-has-ball? false
       set getting-to-offensive-spot? false
+      set closest-player min-one-of players with [team != [team] of myself] [distance myself]
+
+      let zone-to-defend-temp zone-to-defend
+      let otherPlayers players with [team != [team] of myself]; and member? patch-here zone-to-defend]
+      let players-in-zone []
+      let closest-player-in-zone-temp 0
+      let dist-temp 100
+      ask otherPlayers [
+        if member? patch-here zone-to-defend-temp [
+            set players-in-zone lput self players-in-zone
+            let dist-temp2 distance myself
+
+            if distance myself < dist-temp [
+              set dist-temp distance myself
+              set closest-player-in-zone-temp self
+            ]
+          ]
+      ]
+      set closest-player-in-zone closest-player-in-zone-temp
+;      if closest-player-in-zone != 0 [
+;        print self
+;        print closest-player-in-zone
+;      ]
+
       if spot != 0 [ ; if initialized
         if pxcor = item 0 spot and pycor = item 1 spot and not got-back? [
           set got-back? true
@@ -190,20 +212,17 @@ to update-beliefs
           set getting-to-defensive-spot? false
         ]
       ]
-      if got-back? and not ball-is-defended?[
+      if got-back? and not ball-is-defended? [
         set defends-ball? true
         set ball-is-defended? true ; send-message makes the other players know it
       ]
+
     ]
   ]
 end
 
 ; --- Update intentions ---
-; shoot
-; pass
-; walk
 to update-intentions
-  ; add desires to it
   ask players [
     ifelse desire = "get ball" [
       ifelse closest-to-ball = self [
@@ -215,7 +234,7 @@ to update-intentions
       ifelse player-has-ball? and in-shooting-range? [
         set intention "shoot"
       ][
-      ifelse player-has-ball? and not empty? players-open and teamplayer? = 1 [;defender-is-close? [
+      ifelse player-has-ball? and not empty? players-open and teamplayer? and random-float 1 < 1 - pass-percentage [
         set intention "pass"
       ][
       ifelse player-has-ball? and not empty? players-open and defender-is-close? [
@@ -228,13 +247,20 @@ to update-intentions
       ]]]]
     ][
     if desire = "defend" [
+
+;      let pos-closest-player 0
+;      ask closest-player [ set pos-closest-player patch-here ]
+;      if member? pos-closest-player zone-to-defend [
+;        print "yes"
+;      ]
+
       ifelse not got-back? [
         set intention "get back"
       ][
       ifelse defends-ball? [
         set intention "defend ball"
       ][
-        set intention "defending"
+        set intention "defend man"
       ]]]
     ]]
   ]
@@ -319,6 +345,19 @@ to execute-actions
     if intention = "defend ball" [
       face ball-position
       fd 1
+    ]
+
+    if intention = "defend man" [
+      face closest-player
+      fd 1
+    ]
+
+    if intention = "defend zone" [
+      let pos-closest-player 0
+      ask closest-player [ set pos-closest-player patch-here ]
+      print pos-closest-player
+
+      ;if closest-player with patch
     ]
 
     if intention = "defending" [
@@ -448,9 +487,9 @@ points-celtics
 
 MONITOR
 20
-298
+252
 131
-343
+297
 Desire of player 1
 [desire] of player 1
 17
@@ -459,9 +498,9 @@ Desire of player 1
 
 MONITOR
 174
-299
+253
 285
-344
+298
 Desire of player 6
 [desire] of player 6
 17
@@ -470,9 +509,9 @@ Desire of player 6
 
 MONITOR
 12
-356
+310
 139
-401
+355
 Intention of player 1
 [intention] of player 1
 17
@@ -481,9 +520,9 @@ Intention of player 1
 
 MONITOR
 167
-356
+310
 294
-401
+355
 Intention of player 6
 [intention] of player 6
 17
@@ -493,44 +532,70 @@ Intention of player 6
 MONITOR
 13
 183
-230
+312
 228
-Beliefs of player 1 about who is open
-[players-open] of player 1
-17
-1
-11
-
-MONITOR
-13
-240
-230
-285
-Beliefs of player 6 about who is open
-[players-open] of player 6
+Beliefs of the player with the ball about who is open
+[players-open] of players with [player-has-ball?]
 17
 1
 11
 
 SWITCH
 208
-417
-373
-450
-teamplayers-lakers
-teamplayers-lakers
+371
+374
+404
+teamplayers-lakers?
+teamplayers-lakers?
 0
 1
 -1000
 
 SWITCH
 21
-416
-187
-449
-teamplayers-celtics
-teamplayers-celtics
+370
+188
+403
+teamplayers-celtics?
+teamplayers-celtics?
 0
+1
+-1000
+
+SLIDER
+17
+466
+189
+499
+pass-percentage
+pass-percentage
+0
+1
+0.9
+.05
+1
+NIL
+HORIZONTAL
+
+SWITCH
+18
+416
+192
+449
+zone-defense-lakers?
+zone-defense-lakers?
+1
+1
+-1000
+
+SWITCH
+215
+420
+390
+453
+zone-defense-celtics?
+zone-defense-celtics?
+1
 1
 -1000
 

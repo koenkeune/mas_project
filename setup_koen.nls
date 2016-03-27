@@ -1,4 +1,8 @@
 ; --- Global variables ---
+; the following are modifiable: 
+; teamplayers-celtics?
+; teamplayers-lakers?
+; pass-percentage
 globals [
   width         ; width of the court
   height        ; height of the court
@@ -21,8 +25,7 @@ globals [
   possessions-lakers
   possessions-celtics
   passing-prob
-  teamplayers-celtics?
-  teamplayers-lakers?
+  
 ]
 
 ; --- Agents ---
@@ -55,6 +58,10 @@ players-own[
   dist-closest-defender
   received-messages
   teamplayer?
+  closest-player
+  zone-to-defend
+  zone-defense?
+  closest-player-in-zone
 ]
 
 balls-own[
@@ -143,6 +150,47 @@ to-report paint
     (pycor = -5 or pycor = 5 and ((pxcor >= height - 15 and pxcor <= height - 1) or (pxcor <= -1 * height + 15 and pxcor >= -1 * height + 1)))]
 end
 
+to-report zone1a
+  report patches with [pxcor >= 0 and pxcor <= height / 2 and pycor >= 0 and pycor <= width]
+end
+
+to-report zone2a
+  report patches with [pxcor >= 0 and pxcor <= height / 2 and pycor <= 0 and pycor >= -1 * width]
+end
+
+to-report zone3a
+  report patches with [pxcor >= height / 2 and pxcor <= height and pycor >= width / 3 and pycor <= width]
+end
+
+to-report zone4a
+  report patches with [pxcor >= height / 2 and pxcor <= height and pycor >= (-1 * width) / 3 and pycor <= width / 3 ]
+end
+
+to-report zone5a
+  report patches with [pxcor >= height / 2 and pxcor <= height and pycor >= -1 * width and pycor <= (-1 * width) / 3]
+end
+
+to-report zone1b
+  report patches with [pxcor <= 0 and pxcor >= (-1 * height) / 2 and pycor >= 0 and pycor <= width]
+end
+
+to-report zone2b
+  report patches with [pxcor <= 0 and pxcor >= (-1 * height) / 2 and pycor <= 0 and pycor >= -1 * width]
+end
+
+to-report zone3b
+  report patches with [pxcor <= (-1 * height) / 2 and pxcor >= -1 * height and pycor >= width / 3 and pycor <= width]
+end
+
+to-report zone4b
+  report patches with [pxcor <= (-1 * height) / 2 and pxcor >= -1 * height and pycor >= (-1 * width) / 3 and pycor <= width / 3 ]
+end
+
+to-report zone5b
+  report patches with [pxcor <= (-1 * height) / 2 and pxcor >= -1 * height and pycor >= -1 * width and pycor <= (-1 * width) / 3]
+end
+  
+
 ; --- Setup the players and the ball ---
 to setup-game
   set-default-shape players "player"
@@ -154,6 +202,8 @@ to setup-game
     set basket-to-score basket2-pos
     set place-to-inbound inbound1
     set teamplayer? teamplayers-celtics?
+    set zone-defense? 2
+    set zone-defense? zone-defense-celtics?
   ]
 
   create-players 5 [
@@ -162,20 +212,59 @@ to setup-game
     set basket-to-score basket1-pos
     set place-to-inbound inbound2
     set teamplayer? teamplayers-lakers?
+    set zone-defense? zone-defense-lakers?
   ]
 
-  print teamplayers-celtics?
-  print teamplayers-lakers?
-  pos-player 0 2 0
-  pos-player 1 5 -5
-  pos-player 2 5 5
-  pos-player 3 7 0
-  pos-player 4 12 0
-  pos-player 5 -2 0
-  pos-player 6 -5 -5
-  pos-player 7 -5 5
-  pos-player 8 -7 0
-  pos-player 9 -12 0
+  ask player 0 [
+    setxy 2 0
+    set zone-to-defend zone1a
+  ]
+  ask player 1 [
+    setxy 5 -5
+    set zone-to-defend zone2a
+  ]
+  ask player 2 [
+    setxy 5 5
+    set zone-to-defend zone3a
+  ]
+  ask player 3 [
+    setxy 7 0
+    set zone-to-defend zone4a
+  ]
+  ask player 4 [
+    setxy 12 0
+    set zone-to-defend zone5a
+  ]
+  ask player 5 [
+    setxy -2 0
+    set zone-to-defend zone1b
+  ]
+  ask player 6 [
+    setxy -5 -5
+    set zone-to-defend zone2b
+  ]
+  ask player 7 [
+    setxy -5 5
+    set zone-to-defend zone3b
+  ]
+  ask player 8 [
+    setxy -7 0
+    set zone-to-defend zone4b
+  ]
+  ask player 9 [
+    setxy -12 0
+    set zone-to-defend zone5b
+  ]
+;  pos-player 0 2 0
+;  pos-player 1 5 -5
+;  pos-player 2 5 5
+;  pos-player 3 7 0
+;  pos-player 4 12 0
+;  pos-player 5 -2 0
+;  pos-player 6 -5 -5
+;  pos-player 7 -5 5
+;  pos-player 8 -7 0
+;  pos-player 9 -12 0
 
   ask players [
      facexy 0 0
@@ -211,9 +300,9 @@ to setup-game
   set points-celtics 0
 end
 
-to pos-player [number x y]
-  ask player number [ setxy x y ]
-end
+;to pos-player [number x y]
+;  ask player number [ setxy x y ]
+;end
 
 ; --- Setup global parameters ---
 to setup-parameters
