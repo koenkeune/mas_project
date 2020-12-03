@@ -633,7 +633,9 @@ This model models a basketball game with different strategies to find out what i
 
 ## HOW IT WORKS
 
-All the players have beliefs, desires and intentions in this world. These are updated continuously throughout the course of the game. The players want to score as close as possible, but the defending team makes this difficult by standing in the way for them to shoot and also trying to steal the ball away from them. Their desires and intentions also change depending whether they are team players and if they play man-to-man defense or zone defense.
+All the players have beliefs, desires and intentions in this world. These are updated continuously throughout the course of the game. The players desire is to score or to prevent the other team from scoring. The beliefs are variables like: are they open, do they have the ball, does their team has the ball, are they in shooting range. The players intentions are: dribble the ball, shoot, steal the ball, pass to someone, try to get open, block the other player from scoring or form receiving the ball. The players communicate with eachother whether they are open in offense and who or where to defend in defense. 
+
+Their desires and intentions change depending whether they are team players and if they play man-to-man defense or zone defense.
 
 The players start with a jump ball. After every basket the other team has to inbound the ball.
 
