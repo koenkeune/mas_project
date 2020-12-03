@@ -1,8 +1,8 @@
 ; probability that the ball goes in is a function of the player's range and the distance to the basket
 ; relative distance makes the function better scale on the range of a player
 ; maximal range without defense gives a percentage of .43
-to-report probability-score [range dist defender-dist max-dist] 
-  let relative-distance (dist / range) * 2
+to-report probability-score [s-range dist defender-dist max-dist] 
+  let relative-distance (dist / s-range) * 2
   let relative-distance2 defender-dist / max-dist
   if defender-dist > max-dist [
     set relative-distance2 max-dist

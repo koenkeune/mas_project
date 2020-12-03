@@ -304,7 +304,7 @@ to execute-actions
       let xBasket 0
       let yBasket 0
       let distance-to-basket 0
-      let range shooting-range
+      let _range shooting-range
       let teamTemp team
       let dist-defender dist-closest-defender
 
@@ -317,7 +317,7 @@ to execute-actions
       ask ball 11 [
         setxy xBasket yBasket
 
-        ifelse random-float 1 < probability-score range distance-to-basket dist-defender 5 [
+        ifelse random-float 1 < probability-score _range distance-to-basket dist-defender 5 [
           set shot-made teamTemp
           ; no 3-pointers yet
           ifelse teamTemp = "lakers" [
@@ -404,10 +404,10 @@ end
 GRAPHICS-WINDOW
 409
 13
-1310
-539
-49
-27
+1308
+517
+-1
+-1
 9.0
 1
 10
@@ -611,7 +611,7 @@ SWITCH
 453
 zone-defense-celtics?
 zone-defense-celtics?
-1
+0
 1
 -1000
 
@@ -621,7 +621,7 @@ INPUTBOX
 386
 85
 number-of-possesions
-1000
+1000.0
 1
 0
 Number
@@ -629,42 +629,22 @@ Number
 @#$#@#$#@
 ## WHAT IS IT?
 
-This model is about a football game but can also be used for different teamsports with a ball and passing and shooting behaviour.
-
-The model is trying to show how the composition of different types of soccer players influence the result of a match.
+This model models a basketball game with different strategies to find out what is the optimal strategy to win a basketball game! The strategies that are investigated playing selfishly or team-based basketball and playing zone defense or man-to-man defense.
 
 ## HOW IT WORKS
 
-there are 4 types of players.
+All the players have beliefs, desires and intentions in this world. These are updated continuously throughout the course of the game. The players want to score as close as possible, but the defending team makes this difficult by standing in the way for them to shoot and also trying to steal the ball away from them. Their desires and intentions also change depending whether they are team players and if they play man-to-man defense or zone defense.
 
-- selfish defender
-- selfish attacker
-- attacking teamplayer
-- defensive teamplayer
-
-they all behave in their own way. The teamplayers tend to pass faster, the selfish players are better with tricks and will shoot at greater distances. The attackers tend to move forward while their team has the ball and the defenders will move backwards when their team does not have the ball.
-
-At the setup and after each goal the players are randomly placed on their side of the field leading to a different behaviour for every model run.
+The players start with a jump ball. After every basket the other team has to inbound the ball.
 
 ## HOW TO USE IT
 
-In this model you can change the composition of the team with sliders. You can create traditional teams with 10 players or even vary with the amount of players. there is a max of 10 players of the same type for each team.
+Press setup to make the game start and go to make it run (one step or continuously). You can change whether the players of the team are teamplayers and if the play zone defense or man-to-man defense. All passes have change of faillure, which can be modified with the pass-percentage slider. The number of possessions can also be modified in the interface. And the score can be read in the interface.
 
-With the fixed seed option turned on you can watch the same goal over and over again. You can rewatch the previous goal by entering the previous seed number in the current seed number and turn the fixed seed option on.
+## CREDITS
 
-## THINGS TO NOTICE
-
-Check the different behaviour of the team when a certain mix of players are in the field.
-
-## THINGS TO TRY
-
-Try different composition of teams to beat a team.
-
-## CREDITS AND REFERENCES
-
-Designed by: Willemijn Bikker & Sander van Egmond
-Written by: Sander van Egmond
-For the course Agent Based Modelling at Wageningen University
+Written by: Marysia Winkels and Koen Keune
+For the course multi agent systems at the University of Amsterdam
 @#$#@#$#@
 default
 true
@@ -1017,9 +997,8 @@ false
 0
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
-
 @#$#@#$#@
-NetLogo 5.3
+NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
@@ -1626,7 +1605,6 @@ true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
-
 @#$#@#$#@
 0
 @#$#@#$#@
